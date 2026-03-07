@@ -1,0 +1,17 @@
+{
+  "name": "merlin-web",
+  "version": "1.0.0",
+  "description": "M.E.R.L.I.N. — Le Jeu des Oghams (Three.js web port)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}
