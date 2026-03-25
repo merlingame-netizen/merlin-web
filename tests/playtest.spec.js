@@ -2,7 +2,7 @@
 import { test, expect } from '@playwright/test'
 import fs from 'fs'
 
-const BASE = 'http://localhost:5181'
+const BASE = 'https://merlin-game.vercel.app'
 const SHOTS = 'tests/playtest-shots'
 
 // Ensure screenshot directory exists
