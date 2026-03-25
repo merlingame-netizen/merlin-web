@@ -87,33 +87,32 @@ export class TerrainGenerator {
     const colors = geo.attributes.color
     const profile = this._profile
     const [cLow, cMid, cHigh] = profile.colors
-    // Dirt trail color (warm brown, visible)
-    const trailColor = [0.48, 0.32, 0.15]
-    // Occasional paving stone color (grey)
-    const stoneColor = [0.48, 0.45, 0.40]
+    // Smooth dirt trail color (warm earthy brown)
+    const trailCenter = [0.45, 0.30, 0.14]
+    const trailEdge = [0.38, 0.32, 0.18]
 
     for (let i = 0; i < pos.count; i++) {
       const x = pos.array[i * 3]
       const z = pos.array[i * 3 + 2]
       const dist = this._distToPath(x, z, curve)
 
-      // Wider trail (5 units) for better visibility
-      if (dist < 5.0) {
+      // Smooth trail (3.5 units wide) with gentle edges
+      if (dist < 4.0) {
         const baseY = _fbm(x, z, profile.octaves, profile.frequency, profile.amplitude)
-        const blend = Math.max(0, 1 - dist / 5.0)
-        // Flatten terrain more aggressively near center
-        const flatFactor = dist < 1.5 ? 0.85 : blend * 0.6
-        const flatY = baseY * (1 - flatFactor)
-        pos.array[i * 3 + 1] = flatY
+        // Smooth blend: cubic falloff for gentle edges
+        const raw = Math.max(0, 1 - dist / 4.0)
+        const blend = raw * raw * (3 - 2 * raw) // smoothstep
+        // Flatten center strongly, edges gently
+        const flatFactor = blend * 0.9
+        pos.array[i * 3 + 1] = baseY * (1 - flatFactor)
 
         const t = Math.min(1, Math.max(0, (baseY + profile.amplitude * 0.5) / (profile.amplitude * 1.5)))
         const baseC = t < 0.5
           ? [cLow[0] + (cMid[0] - cLow[0]) * t * 2, cLow[1] + (cMid[1] - cLow[1]) * t * 2, cLow[2] + (cMid[2] - cLow[2]) * t * 2]
           : [cMid[0] + (cHigh[0] - cMid[0]) * (t - 0.5) * 2, cMid[1] + (cHigh[1] - cMid[1]) * (t - 0.5) * 2, cMid[2] + (cHigh[2] - cMid[2]) * (t - 0.5) * 2]
 
-        // Occasional paving stones (every ~3 units along path, center only)
-        const isPaved = dist < 1.2 && Math.abs(Math.sin(z * 1.0)) > 0.7
-        const tc = isPaved ? stoneColor : trailColor
+        // Smooth gradient: center = dirt, edges = blend to terrain
+        const tc = dist < 1.5 ? trailCenter : trailEdge
 
         colors.array[i * 3] = baseC[0] + (tc[0] - baseC[0]) * blend
         colors.array[i * 3 + 1] = baseC[1] + (tc[1] - baseC[1]) * blend

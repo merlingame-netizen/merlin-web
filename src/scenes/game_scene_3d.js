@@ -466,7 +466,7 @@ export class GameScene3D {
     const cardPos = camRef.clone()
       .add(fwd.clone().multiplyScalar(2.5))
       .add(rightVec.clone().multiplyScalar(cardLateral))
-    cardPos.y = camRef.y + 0.1
+    cardPos.y = camRef.y - 0.3 // Lower card so title isn't cut off at top
 
     const choices = card.choices || []
     card._faction = card._faction || (card.tags?.[0]) || 'druides'
@@ -495,8 +495,7 @@ export class GameScene3D {
     // 4. Setup raycasting for choice selection on the 3D card
     this._setupCardRaycast(card)
 
-    // 5. Always show slim choice bar at bottom (primary UI, not just fallback)
-    this._showDOMChoiceFallback(card)
+    // 5. No bottom bar — choices are on the 3D card + raycast only
   }
 
   /** Raycasting for clicking choices on the 3D card */

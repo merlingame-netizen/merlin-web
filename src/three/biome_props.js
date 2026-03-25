@@ -50,8 +50,8 @@ const PROP_CONFIGS = {
     { type: 'tree_trunk', count: 400, spread: 60, scaleMin: 0.8, scaleMax: 2.0, color: 0x6a5030 },
     { type: 'tree_canopy', count: 400, spread: 60, scaleMin: 0.8, scaleMax: 2.0, color: 0x7aaa60, _pairTrunk: true },
     { type: 'bush', count: 600, spread: 80, scaleMin: 0.3, scaleMax: 1.0, color: 0x7aaa60 },
-    { type: 'rock', count: 200, spread: 80, scaleMin: 0.2, scaleMax: 1.0, color: 0x6a6a5a },
-    { type: 'rock', count: 120, spread: 60, scaleMin: 0.5, scaleMax: 1.5, color: 0x5a5a4a },
+    { type: 'rock', count: 40, spread: 80, scaleMin: 0.2, scaleMax: 0.6, color: 0x6a6a5a },
+    { type: 'rock', count: 20, spread: 60, scaleMin: 0.4, scaleMax: 1.0, color: 0x5a5a4a },
     { type: 'flower', count: 150, spread: 75, scaleMin: 0.3, scaleMax: 1.0, color: 0x9966cc },
     { type: 'flower', count: 100, spread: 70, scaleMin: 0.3, scaleMax: 0.8, color: 0xddaa44 },
     { type: 'mushroom', count: 100, spread: 65, scaleMin: 0.3, scaleMax: 1.0, color: 0xcc8844 },
@@ -165,27 +165,28 @@ function _mergeGeometries(geos) {
 
 // ── Solid 3D grass/fern geometry builders ─────────────────────────────────
 function _grassTuftGeometry() {
+  // Flat star-shaped ground cover (not pointy cones)
   const verts = []
-  const bladeCount = 4 + Math.floor(Math.random() * 2)
-  for (let i = 0; i < bladeCount; i++) {
-    const angle = (i / bladeCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.5
-    const h = 0.15 + Math.random() * 0.12
-    const w = 0.03 + Math.random() * 0.02
-    const lean = 0.02 + Math.random() * 0.03
-    const cos_a = Math.cos(angle), sin_a = Math.sin(angle)
-    verts.push(
-      -w * cos_a, 0, -w * sin_a,
-       w * cos_a, 0,  w * sin_a,
-       lean * cos_a, h, lean * sin_a
-    )
+  const indices = []
+  const points = 5 + Math.floor(Math.random() * 3) // 5-7 points
+  const radius = 0.08 + Math.random() * 0.06
+  const height = 0.02 + Math.random() * 0.02 // Very low — ground hugging
+
+  // Center vertex
+  verts.push(0, height, 0)
+  // Outer ring
+  for (let i = 0; i < points; i++) {
+    const angle = (i / points) * Math.PI * 2 + (Math.random() - 0.5) * 0.3
+    const r = radius * (0.7 + Math.random() * 0.3)
+    verts.push(Math.cos(angle) * r, Math.random() * 0.01, Math.sin(angle) * r)
   }
+  // Fan triangles from center to ring
+  for (let i = 0; i < points; i++) {
+    indices.push(0, 1 + i, 1 + ((i + 1) % points))
+  }
+
   const geo = new THREE.BufferGeometry()
   geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3))
-  const indices = []
-  for (let b = 0; b < bladeCount; b++) {
-    const base = b * 3
-    indices.push(base, base + 1, base + 2)
-  }
   geo.setIndex(indices)
   geo.computeVertexNormals()
   return geo
