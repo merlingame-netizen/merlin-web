@@ -752,8 +752,8 @@ export class GameScene3D {
     const center = this._el?.querySelector('#g3d-center')
     if (!center) return
 
-    const colors = ['rgba(6,13,6,0.85)', 'rgba(6,13,6,0.85)', 'rgba(6,13,6,0.85)']
-    const borderColors = ['#33ff66', '#ffbf33', '#4dd9cc']
+    const colors = ['rgba(180,165,130,0.92)', 'rgba(180,165,130,0.92)', 'rgba(180,165,130,0.92)']
+    const borderColors = ['#2a6a2a', '#8a6a20', '#2a4a6a']
 
     // Create floating choice buttons that update position each frame
     const container = document.createElement('div')
@@ -769,13 +769,13 @@ export class GameScene3D {
         position:absolute;pointer-events:auto;cursor:pointer;
         padding:10px 16px;border-radius:8px;
         background:${colors[i]};border:1px solid ${borderColors[i]};
-        color:rgba(255,255,255,0.9);font:13px/1.2 'VT323',monospace;
+        color:#3a2810;font:13px/1.2 Georgia,'Times New Roman',serif;
         backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
         transition:background 0.15s,transform 0.15s;
         max-width:220px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
       `
       btn.addEventListener('mouseenter', () => {
-        btn.style.background = 'rgba(51, 255, 102, 0.12)'
+        btn.style.background = 'rgba(160,145,110,0.95)'
         btn.style.transform = 'scale(1.05)'
         btn.style.borderColor = borderColors[i]
         try { SFX.choiceHover?.() } catch {}

@@ -65,6 +65,7 @@ let _relationship = createRelationship()
 let _narrative = createNarrative()
 let _session = createSession()
 let _difficulty = createDifficultyState()
+let _lastMinigameScore = 0
 
 function _syncRegistries() {
   setRegistries({
@@ -397,7 +398,25 @@ const gameScene3D = new GameScene3D(
         dispatch('APPLY_EFFECTS', { effects: ['USE_SOUFFLE:1'], source: 'SOUFFLE_BOOST' })
       }
 
-      const effects = card._effects[`effects_${optionIndex}`] ?? []
+      let effects = card._effects[`effects_${optionIndex}`] ?? []
+
+      // Modulate faction shifts by last minigame score (if any)
+      if (_lastMinigameScore > 0) {
+        const multiplier = Math.max(0.3, _lastMinigameScore / 50) // 0.3x-2.0x range
+        effects = effects.map(e => {
+          if (typeof e === 'string' && e.startsWith('SHIFT_FACTION:')) {
+            const parts = e.split(':')
+            if (parts.length >= 3) {
+              const val = parseInt(parts[2])
+              if (!isNaN(val)) return `${parts[0]}:${parts[1]}:${Math.round(val * multiplier)}`
+            }
+          }
+          return e
+        })
+        console.log(`[Game3D] Minigame score ${_lastMinigameScore} → multiplier ${multiplier.toFixed(2)}`)
+        _lastMinigameScore = 0
+      }
+
       console.log(`[Game3D] Effects for choice ${optionIndex}:`, effects)
       dispatch('RESOLVE_CHOICE', { option_index: optionIndex, effects })
       dispatch('UPDATE_BOND', { option_index: optionIndex, card_tags: card.tags ?? [] })
@@ -443,6 +462,7 @@ const gameScene3D = new GameScene3D(
         }
         SFX.minigameStart()
         const result = await playInteractiveMinigame(mg.type, context)
+        _lastMinigameScore = result.score ?? 50
 
         if (result.success) {
           result.critical ? SFX.minigameCritical() : SFX.minigameSuccess()

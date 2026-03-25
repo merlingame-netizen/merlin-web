@@ -88,51 +88,60 @@ function _createFaceTexture(card, parchment, choices) {
     // No faction label for parchment
 
   } else {
-    // --- ENCOUNTER CARD — Verre dépoli sombre (high contrast, readable) ---
-    // Deep dark background with subtle gradient
+    // --- ENCOUNTER CARD — Organic parchment (matches 3D forest aesthetic) ---
     const grad = cx.createLinearGradient(0, 0, 0, texH)
-    grad.addColorStop(0, 'rgba(8, 16, 8, 0.92)')
-    grad.addColorStop(0.5, 'rgba(4, 10, 4, 0.95)')
-    grad.addColorStop(1, 'rgba(2, 6, 2, 0.92)')
+    grad.addColorStop(0, 'rgba(180, 165, 130, 0.94)')
+    grad.addColorStop(0.4, 'rgba(165, 150, 115, 0.96)')
+    grad.addColorStop(1, 'rgba(140, 125, 90, 0.94)')
     cx.fillStyle = grad
     cx.fillRect(0, 0, texW, texH)
 
+    // Subtle parchment noise texture
+    for (let i = 0; i < 100; i++) {
+      cx.fillStyle = `rgba(${100 + Math.random() * 40}, ${80 + Math.random() * 30}, ${50 + Math.random() * 20}, 0.04)`
+      cx.fillRect(Math.random() * texW, Math.random() * texH, 3 + Math.random() * 8, 3 + Math.random() * 8)
+    }
+
     const fCol = FACTION_COLORS[card._faction] || '#aa8833'
 
-    // Thin luminous border
-    cx.strokeStyle = 'rgba(51, 255, 102, 0.2)'
-    cx.lineWidth = 3
+    // Warm border (faction-tinted)
+    cx.strokeStyle = fCol
+    cx.lineWidth = 4
     cx.strokeRect(6, 6, texW - 12, texH - 12)
 
-    // Subtle inner glow at top
-    const topGlow = cx.createLinearGradient(0, 0, 0, texH * 0.15)
-    topGlow.addColorStop(0, 'rgba(51, 255, 102, 0.06)')
-    topGlow.addColorStop(1, 'rgba(0, 0, 0, 0)')
-    cx.fillStyle = topGlow
-    cx.fillRect(8, 8, texW - 16, texH * 0.15)
+    // Inner border (double frame like parchment)
+    cx.strokeStyle = 'rgba(120, 100, 60, 0.3)'
+    cx.lineWidth = 1
+    cx.strokeRect(14, 14, texW - 28, texH - 28)
 
-    // Title — bright green CRT
-    cx.fillStyle = '#33FF66'
-    cx.font = `bold ${Math.round(texH * 0.034)}px 'VT323', 'Courier New', monospace`
+    // Faction header tint
+    cx.fillStyle = fCol
+    cx.globalAlpha = 0.1
+    cx.fillRect(14, 14, texW - 28, texH * 0.11)
+    cx.globalAlpha = 1
+
+    // Title — dark brown, serif, medieval feel
+    cx.fillStyle = '#3a2810'
+    cx.font = `bold ${Math.round(texH * 0.034)}px Georgia, 'Times New Roman', serif`
     cx.textAlign = 'center'
     cx.textBaseline = 'middle'
-    // Shadow for glow effect
-    cx.shadowColor = '#33FF66'
-    cx.shadowBlur = 12
     cx.fillText((card.title || 'Rencontre').slice(0, 28), texW / 2, texH * 0.07)
-    cx.shadowBlur = 0
 
-    // Divider — thin glowing line
-    cx.strokeStyle = 'rgba(51, 255, 102, 0.25)'
-    cx.lineWidth = 1
+    // Ornamental divider
+    cx.strokeStyle = '#8a7040'
+    cx.lineWidth = 1.5
     cx.beginPath()
-    cx.moveTo(margin, texH * 0.12)
-    cx.lineTo(texW - margin, texH * 0.12)
+    cx.moveTo(margin + 40, texH * 0.12)
+    cx.lineTo(texW - margin - 40, texH * 0.12)
     cx.stroke()
+    // Center diamond ornament
+    const divY = texH * 0.12
+    cx.fillStyle = '#8a7040'
+    cx.beginPath(); cx.moveTo(texW / 2, divY - 5); cx.lineTo(texW / 2 + 5, divY); cx.lineTo(texW / 2, divY + 5); cx.lineTo(texW / 2 - 5, divY); cx.fill()
 
-    // Body text — white, high contrast, readable
-    cx.fillStyle = 'rgba(230, 235, 220, 0.92)'
-    cx.font = `${Math.round(texH * 0.025)}px 'Inter', 'Segoe UI', sans-serif`
+    // Body text — dark brown on parchment, italic serif
+    cx.fillStyle = '#4a3520'
+    cx.font = `italic ${Math.round(texH * 0.024)}px Georgia, 'Times New Roman', serif`
     cx.textAlign = 'left'
     cx.textBaseline = 'top'
     const text = card.text || ''
@@ -154,43 +163,52 @@ function _createFaceTexture(card, parchment, choices) {
     }
     if (bodyLine.trim()) cx.fillText(bodyLine.trim(), margin, bodyY)
 
-    // --- CHOICES — clear, separated, colored dots ---
+    // --- CHOICES — parchment style, warm tones ---
     if (choices?.length) {
       const choiceY = texH * 0.63
 
-      // Separator
-      cx.fillStyle = 'rgba(51, 255, 102, 0.12)'
-      cx.fillRect(margin, choiceY - 8, texW - margin * 2, 1)
+      // Ornamental separator
+      cx.strokeStyle = '#8a7040'
+      cx.lineWidth = 1
+      cx.beginPath(); cx.moveTo(margin + 20, choiceY - 8); cx.lineTo(texW - margin - 20, choiceY - 8); cx.stroke()
 
-      const dotColors = ['#33ff66', '#ffbf33', '#4dd9cc']
+      const dotColors = ['#2a6a2a', '#8a6a20', '#2a4a6a'] // forest green, amber, deep blue
       const choiceH = (texH * 0.32) / 3
 
       for (let i = 0; i < choices.length && i < 3; i++) {
         const cy = choiceY + i * choiceH + choiceH / 2
 
-        // Choice background (subtle hover zone)
-        cx.fillStyle = 'rgba(255, 255, 255, 0.03)'
-        cx.fillRect(margin, cy - choiceH * 0.4, texW - margin * 2, choiceH * 0.8)
+        // Subtle choice zone tint
+        cx.fillStyle = 'rgba(120, 100, 60, 0.06)'
+        cx.fillRect(margin, cy - choiceH * 0.38, texW - margin * 2, choiceH * 0.76)
 
-        // Dot
+        // Dot (small filled circle)
         cx.beginPath()
-        cx.arc(margin + 14, cy, 10, 0, Math.PI * 2)
+        cx.arc(margin + 12, cy, 7, 0, Math.PI * 2)
         cx.fillStyle = dotColors[i]
         cx.fill()
 
-        // Label — white, readable
-        cx.fillStyle = 'rgba(255, 255, 255, 0.9)'
-        cx.font = `${Math.round(texH * 0.025)}px 'VT323', 'Courier New', monospace`
+        // Label — dark brown serif, readable on parchment
+        cx.fillStyle = '#3a2810'
+        cx.font = `${Math.round(texH * 0.023)}px Georgia, 'Times New Roman', serif`
         cx.textAlign = 'left'
         cx.textBaseline = 'middle'
         const label = (typeof choices[i] === 'string' ? choices[i] : choices[i].label || '').slice(0, 36)
-        cx.fillText(label, margin + 32, cy)
+        cx.fillText(label, margin + 28, cy)
+
+        // Preview hint if available
+        const preview = choices[i]?.preview
+        if (preview) {
+          cx.fillStyle = '#7a6a50'
+          cx.font = `italic ${Math.round(texH * 0.016)}px Georgia, serif`
+          cx.fillText(preview.slice(0, 30), margin + 28, cy + texH * 0.022)
+        }
       }
     }
 
-    // Faction tag — amber, bottom right
-    cx.fillStyle = '#FFBF33'
-    cx.font = `bold ${Math.round(texH * 0.016)}px 'VT323', monospace`
+    // Faction tag — muted, bottom right
+    cx.fillStyle = fCol
+    cx.font = `bold ${Math.round(texH * 0.015)}px Georgia, serif`
     cx.textAlign = 'right'
     cx.textBaseline = 'bottom'
     cx.fillText((card._faction || '').toUpperCase(), texW - margin, texH - 14)
