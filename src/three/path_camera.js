@@ -121,6 +121,8 @@ export class PathCamera {
     return p
   }
 
+  getCamera() { return this._camera }
+
   startWalking() {
     if (this._state === 'idle' || this._state === 'stopped') {
       this._state = 'resuming'
