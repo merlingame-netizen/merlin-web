@@ -535,37 +535,145 @@ router.register('collection', collectionScene)
 function _showLoadingScreen() {
   const el = document.createElement('div')
   el.id = 'merlin-loading'
-  el.style.cssText = 'position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#060d06;color:#33FF66;font-family:VT323,monospace;'
-  el.innerHTML = `
-    <div style="font-size:28px;letter-spacing:6px;margin-bottom:20px;opacity:0.9">M.E.R.L.I.N.</div>
-    <div style="font-size:16px;opacity:0.6;margin-bottom:30px">Merlin prépare votre destinée...</div>
-    <div style="width:200px;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden">
-      <div id="merlin-load-bar" style="height:100%;background:#33FF66;border-radius:2px;width:0%;transition:width 0.3s"></div>
-    </div>
-  `
+  el.style.cssText = 'position:fixed;inset:0;z-index:100;background:#d4c5a0;overflow:hidden;'
+
+  // Canvas for animated path drawing
+  const cv = document.createElement('canvas')
+  cv.width = 600; cv.height = 800
+  cv.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-width:90vw;max-height:90vh;'
+  el.appendChild(cv)
   document.body.appendChild(el)
-  // Animate bar
-  let pct = 0
-  const iv = setInterval(() => {
-    pct = Math.min(95, pct + 5 + Math.random() * 10)
-    const bar = document.getElementById('merlin-load-bar')
-    if (bar) bar.style.width = pct + '%'
-    if (pct >= 95) clearInterval(iv)
-  }, 300)
-  el._iv = iv
+
+  const cx = cv.getContext('2d')
+  let t = 0, pathProgress = 0, eventDots = [], rafId = 0
+
+  // Generate random path points (Bézier curves)
+  const pathPts = []
+  let px = 300, py = 720
+  for (let i = 0; i < 8; i++) {
+    const nx = 100 + Math.random() * 400
+    const ny = py - 60 - Math.random() * 40
+    pathPts.push({ x: px, y: py, cx1: px + (Math.random() - 0.5) * 80, cy1: py - 30, cx2: nx + (Math.random() - 0.5) * 80, cy2: ny + 30 })
+    // Fork branch at some points
+    if (i === 2 || i === 5) {
+      const forkX = nx + (Math.random() > 0.5 ? 80 : -80)
+      eventDots.push({ x: nx, y: ny, type: 'fork', r: 0 })
+      pathPts.push({ x: nx, y: ny, cx1: nx + 20, cy1: ny - 20, cx2: forkX, cy2: ny - 60, isBranch: true })
+    }
+    // Event markers
+    if (i % 2 === 0) eventDots.push({ x: nx, y: ny, type: 'event', r: 0 })
+    px = nx; py = ny
+  }
+
+  const drawFrame = () => {
+    t += 0.016
+    pathProgress = Math.min(1, t / 5) // 5s to draw full path
+
+    // Parchment background with aged texture
+    cx.fillStyle = '#d4c5a0'
+    cx.fillRect(0, 0, 600, 800)
+    // Subtle noise
+    for (let i = 0; i < 200; i++) {
+      cx.fillStyle = `rgba(${120 + Math.random() * 40}, ${100 + Math.random() * 30}, ${60 + Math.random() * 30}, 0.03)`
+      cx.fillRect(Math.random() * 600, Math.random() * 800, 2 + Math.random() * 4, 2 + Math.random() * 4)
+    }
+
+    // Border
+    cx.strokeStyle = '#8a7040'; cx.lineWidth = 3; cx.strokeRect(15, 15, 570, 770)
+    cx.strokeStyle = '#8a7040'; cx.lineWidth = 1; cx.strokeRect(22, 22, 556, 756)
+
+    // Title
+    cx.fillStyle = '#4a3520'
+    cx.font = 'bold 32px "VT323", serif'
+    cx.textAlign = 'center'
+    cx.fillText('M.E.R.L.I.N.', 300, 55)
+    cx.font = '16px "VT323", serif'
+    cx.fillStyle = '#6a5a40'
+    cx.fillText('Forêt de Brocéliande', 300, 80)
+
+    // Animated path (ink drawing effect)
+    const segsToDraw = Math.floor(pathProgress * pathPts.length)
+    const segFrac = (pathProgress * pathPts.length) % 1
+
+    cx.strokeStyle = '#5a4a30'
+    cx.lineWidth = 2.5
+    cx.setLineDash([])
+
+    for (let i = 0; i < segsToDraw + 1 && i < pathPts.length; i++) {
+      const p = pathPts[i]
+      const frac = i < segsToDraw ? 1 : segFrac
+      if (frac <= 0) continue
+
+      cx.globalAlpha = p.isBranch ? 0.4 : 0.8
+      cx.strokeStyle = p.isBranch ? '#7a6a50' : '#5a4a30'
+      cx.lineWidth = p.isBranch ? 1.5 : 2.5
+
+      // Draw partial Bézier
+      cx.beginPath()
+      cx.moveTo(p.x, p.y)
+      const steps = Math.ceil(frac * 20)
+      for (let s = 1; s <= steps; s++) {
+        const st = s / 20
+        const mt = 1 - st
+        const bx = mt*mt*mt*p.x + 3*mt*mt*st*p.cx1 + 3*mt*st*st*p.cx2 + st*st*st*(pathPts[i+1]?.x ?? p.cx2)
+        const by = mt*mt*mt*p.y + 3*mt*mt*st*p.cy1 + 3*mt*st*st*p.cy2 + st*st*st*(pathPts[i+1]?.y ?? p.cy2)
+        cx.lineTo(bx, by)
+      }
+      cx.stroke()
+    }
+    cx.globalAlpha = 1
+
+    // Event dots (appear with delay)
+    eventDots.forEach((d, i) => {
+      const appear = (i + 1) * 0.6 // staggered appearance
+      if (t > appear) {
+        d.r = Math.min(1, (t - appear) * 2)
+        const r = d.r * (d.type === 'fork' ? 6 : 4)
+        cx.beginPath(); cx.arc(d.x, d.y, r, 0, Math.PI * 2)
+        cx.fillStyle = d.type === 'fork' ? '#cc6633' : '#33aa55'
+        cx.fill()
+        // Glow
+        cx.beginPath(); cx.arc(d.x, d.y, r + 3, 0, Math.PI * 2)
+        cx.strokeStyle = d.type === 'fork' ? 'rgba(204,102,51,0.3)' : 'rgba(51,170,85,0.3)'
+        cx.lineWidth = 1; cx.stroke()
+      }
+    })
+
+    // Status text
+    cx.fillStyle = '#6a5a40'
+    cx.font = '14px "VT323", serif'
+    cx.textAlign = 'center'
+    const messages = [
+      'Merlin trace les sentiers de votre destin...',
+      'Les korrigans murmurent aux carrefours...',
+      'Les runes s\'illuminent le long du chemin...',
+      'La forêt se prépare à vous accueillir...',
+    ]
+    cx.fillText(messages[Math.floor(t / 2) % messages.length], 300, 760)
+
+    // Progress bar at bottom
+    cx.fillStyle = 'rgba(90,74,48,0.2)'
+    cx.fillRect(50, 775, 500, 4)
+    cx.fillStyle = '#5a4a30'
+    cx.fillRect(50, 775, 500 * pathProgress, 4)
+
+    if (pathProgress < 1) {
+      rafId = requestAnimationFrame(drawFrame)
+    }
+  }
+
+  rafId = requestAnimationFrame(drawFrame)
+  el._raf = rafId
 }
 
 function _hideLoadingScreen() {
   const el = document.getElementById('merlin-loading')
   if (!el) return
-  if (el._iv) clearInterval(el._iv)
-  const bar = document.getElementById('merlin-load-bar')
-  if (bar) bar.style.width = '100%'
-  setTimeout(() => {
-    el.style.transition = 'opacity 0.6s'
-    el.style.opacity = '0'
-    setTimeout(() => el.remove(), 600)
-  }, 300)
+  if (el._raf) cancelAnimationFrame(el._raf)
+  // Fade to dark (transition to 3D)
+  el.style.transition = 'opacity 1.2s ease-in-out'
+  el.style.opacity = '0'
+  setTimeout(() => el.remove(), 1200)
 }
 
 async function startFirstRun() {
