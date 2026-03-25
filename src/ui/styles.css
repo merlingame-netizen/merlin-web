@@ -525,8 +525,9 @@ html, body {
 .g3d-hud-top {
   display: flex; justify-content: space-between; align-items: center;
   padding: 10px 16px;
-  background: linear-gradient(to bottom, rgba(5,12,5,0.8), transparent);
+  background: linear-gradient(to bottom, rgba(4,8,4,0.92) 0%, rgba(4,8,4,0.6) 60%, transparent 100%);
   pointer-events: none;
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
 }
 
 .g3d-factions {

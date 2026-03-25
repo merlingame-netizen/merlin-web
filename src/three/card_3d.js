@@ -88,55 +88,59 @@ function _createFaceTexture(card, parchment, choices) {
     // No faction label for parchment
 
   } else {
-    // --- ENCOUNTER CARD — dark green CRT style ---
+    // --- ENCOUNTER CARD — Verre dépoli sombre (high contrast, readable) ---
+    // Deep dark background with subtle gradient
     const grad = cx.createLinearGradient(0, 0, 0, texH)
-    grad.addColorStop(0, '#1a2a15')
-    grad.addColorStop(1, '#0a1508')
+    grad.addColorStop(0, 'rgba(8, 16, 8, 0.92)')
+    grad.addColorStop(0.5, 'rgba(4, 10, 4, 0.95)')
+    grad.addColorStop(1, 'rgba(2, 6, 2, 0.92)')
     cx.fillStyle = grad
     cx.fillRect(0, 0, texW, texH)
 
     const fCol = FACTION_COLORS[card._faction] || '#aa8833'
 
-    // Faction border
-    cx.strokeStyle = fCol
-    cx.lineWidth = 5
-    cx.strokeRect(8, 8, texW - 16, texH - 16)
-    cx.strokeStyle = 'rgba(255,255,255,0.08)'
-    cx.lineWidth = 1
-    cx.strokeRect(16, 16, texW - 32, texH - 32)
+    // Thin luminous border
+    cx.strokeStyle = 'rgba(51, 255, 102, 0.2)'
+    cx.lineWidth = 3
+    cx.strokeRect(6, 6, texW - 12, texH - 12)
 
-    // Faction header tint
-    cx.fillStyle = fCol
-    cx.globalAlpha = 0.15
-    cx.fillRect(16, 16, texW - 32, texH * 0.12)
-    cx.globalAlpha = 1
+    // Subtle inner glow at top
+    const topGlow = cx.createLinearGradient(0, 0, 0, texH * 0.15)
+    topGlow.addColorStop(0, 'rgba(51, 255, 102, 0.06)')
+    topGlow.addColorStop(1, 'rgba(0, 0, 0, 0)')
+    cx.fillStyle = topGlow
+    cx.fillRect(8, 8, texW - 16, texH * 0.15)
 
-    // Title
-    cx.fillStyle = '#ffcc55'
-    cx.font = `bold ${Math.round(texH * 0.035)}px Inter, sans-serif`
+    // Title — bright green CRT
+    cx.fillStyle = '#33FF66'
+    cx.font = `bold ${Math.round(texH * 0.034)}px 'VT323', 'Courier New', monospace`
     cx.textAlign = 'center'
     cx.textBaseline = 'middle'
-    cx.fillText((card.title || 'Rencontre').slice(0, 24), texW / 2, texH * 0.075)
+    // Shadow for glow effect
+    cx.shadowColor = '#33FF66'
+    cx.shadowBlur = 12
+    cx.fillText((card.title || 'Rencontre').slice(0, 28), texW / 2, texH * 0.07)
+    cx.shadowBlur = 0
 
-    // Divider
-    cx.strokeStyle = fCol
-    cx.lineWidth = 1.5
+    // Divider — thin glowing line
+    cx.strokeStyle = 'rgba(51, 255, 102, 0.25)'
+    cx.lineWidth = 1
     cx.beginPath()
-    cx.moveTo(margin, texH * 0.13)
-    cx.lineTo(texW - margin, texH * 0.13)
+    cx.moveTo(margin, texH * 0.12)
+    cx.lineTo(texW - margin, texH * 0.12)
     cx.stroke()
 
-    // Body text
-    cx.fillStyle = '#aaddaa'
-    cx.font = `${Math.round(texH * 0.024)}px Inter, sans-serif`
+    // Body text — white, high contrast, readable
+    cx.fillStyle = 'rgba(230, 235, 220, 0.92)'
+    cx.font = `${Math.round(texH * 0.025)}px 'Inter', 'Segoe UI', sans-serif`
     cx.textAlign = 'left'
     cx.textBaseline = 'top'
     const text = card.text || ''
     const textWords = text.split(' ')
-    let bodyLine = '', bodyY = texH * 0.16
+    let bodyLine = '', bodyY = texH * 0.15
     const maxBodyW = texW - margin * 2
-    const bodyLineH = Math.round(texH * 0.032)
-    const bodyYLimit = choices?.length ? texH * 0.62 : texH * 0.82
+    const bodyLineH = Math.round(texH * 0.034)
+    const bodyYLimit = choices?.length ? texH * 0.58 : texH * 0.82
     for (const w of textWords) {
       const test = bodyLine + w + ' '
       if (cx.measureText(test).width > maxBodyW) {
@@ -150,42 +154,53 @@ function _createFaceTexture(card, parchment, choices) {
     }
     if (bodyLine.trim()) cx.fillText(bodyLine.trim(), margin, bodyY)
 
-    // --- CHOICES rendered on the texture ---
+    // --- CHOICES — clear, separated, colored dots ---
     if (choices?.length) {
-      const choiceY = texH * 0.68
+      const choiceY = texH * 0.63
 
-      // Separator line above choices
-      cx.fillStyle = 'rgba(255,255,255,0.15)'
-      cx.fillRect(margin, choiceY - 10, texW - margin * 2, 1)
+      // Separator
+      cx.fillStyle = 'rgba(51, 255, 102, 0.12)'
+      cx.fillRect(margin, choiceY - 8, texW - margin * 2, 1)
 
-      const dotColors = ['#33ff66', '#ffbe33', '#4dd9cc']
-      const choiceH = (texH * 0.28) / 3
+      const dotColors = ['#33ff66', '#ffbf33', '#4dd9cc']
+      const choiceH = (texH * 0.32) / 3
 
       for (let i = 0; i < choices.length && i < 3; i++) {
         const cy = choiceY + i * choiceH + choiceH / 2
 
+        // Choice background (subtle hover zone)
+        cx.fillStyle = 'rgba(255, 255, 255, 0.03)'
+        cx.fillRect(margin, cy - choiceH * 0.4, texW - margin * 2, choiceH * 0.8)
+
         // Dot
         cx.beginPath()
-        cx.arc(margin + 12, cy, 14, 0, Math.PI * 2)
+        cx.arc(margin + 14, cy, 10, 0, Math.PI * 2)
         cx.fillStyle = dotColors[i]
         cx.fill()
 
-        // Label
-        cx.fillStyle = '#ffffff'
-        cx.font = `${Math.round(texH * 0.024)}px Inter, sans-serif`
+        // Label — white, readable
+        cx.fillStyle = 'rgba(255, 255, 255, 0.9)'
+        cx.font = `${Math.round(texH * 0.025)}px 'VT323', 'Courier New', monospace`
         cx.textAlign = 'left'
         cx.textBaseline = 'middle'
         const label = (typeof choices[i] === 'string' ? choices[i] : choices[i].label || '').slice(0, 36)
-        cx.fillText(label, margin + 28, cy)
+        cx.fillText(label, margin + 32, cy)
       }
     }
 
-    // Faction name (bottom right)
-    cx.fillStyle = fCol
-    cx.font = `bold ${Math.round(texH * 0.018)}px Inter, sans-serif`
+    // Faction tag — amber, bottom right
+    cx.fillStyle = '#FFBF33'
+    cx.font = `bold ${Math.round(texH * 0.016)}px 'VT323', monospace`
     cx.textAlign = 'right'
     cx.textBaseline = 'bottom'
     cx.fillText((card._faction || '').toUpperCase(), texW - margin, texH - 14)
+
+    // Scene tag if available
+    if (card.scene_tag) {
+      cx.fillStyle = 'rgba(51, 255, 102, 0.5)'
+      cx.font = `${Math.round(texH * 0.014)}px 'VT323', monospace`
+      cx.fillText(card.scene_tag.toUpperCase(), texW - margin, texH - 34)
+    }
   }
 
   return new THREE.CanvasTexture(cv)

@@ -661,8 +661,8 @@ export class GameScene3D {
     const center = this._el?.querySelector('#g3d-center')
     if (!center) return
 
-    const colors = ['rgba(51,170,85,0.15)', 'rgba(204,153,51,0.15)', 'rgba(68,136,204,0.15)']
-    const borderColors = ['#33aa55', '#cc9933', '#4488cc']
+    const colors = ['rgba(6,13,6,0.85)', 'rgba(6,13,6,0.85)', 'rgba(6,13,6,0.85)']
+    const borderColors = ['#33ff66', '#ffbf33', '#4dd9cc']
 
     // Create floating choice buttons that update position each frame
     const container = document.createElement('div')
@@ -684,8 +684,9 @@ export class GameScene3D {
         max-width:220px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
       `
       btn.addEventListener('mouseenter', () => {
-        btn.style.background = borderColors[i] + '44'
+        btn.style.background = 'rgba(51, 255, 102, 0.12)'
         btn.style.transform = 'scale(1.05)'
+        btn.style.borderColor = borderColors[i]
         try { SFX.choiceHover?.() } catch {}
       })
       btn.addEventListener('mouseleave', () => {
