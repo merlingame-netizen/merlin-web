@@ -495,7 +495,8 @@ export class GameScene3D {
     // 4. Setup raycasting for choice selection on the 3D card
     this._setupCardRaycast(card)
 
-    // 5. No bottom bar — choices are on the 3D card + raycast only
+    // 5. Projected DOM buttons over the card's choice zones (reliable click fallback)
+    this._showProjectedChoiceButtons(card, choices)
   }
 
   /** Raycasting for clicking choices on the 3D card */
@@ -608,6 +609,91 @@ export class GameScene3D {
     }
   }
 
+  /** Projected transparent DOM buttons over the 3D card's choice zones */
+  _showProjectedChoiceButtons(card, choices) {
+    if (!choices?.length) return
+    const center = this._el?.querySelector('#g3d-center')
+    if (!center) return
+
+    const colors = ['rgba(51,170,85,0.15)', 'rgba(204,153,51,0.15)', 'rgba(68,136,204,0.15)']
+    const borderColors = ['#33aa55', '#cc9933', '#4488cc']
+
+    // Create floating choice buttons that update position each frame
+    const container = document.createElement('div')
+    container.className = 'g3d-projected-choices'
+    container.style.cssText = 'position:fixed;inset:0;z-index:30;pointer-events:none;'
+
+    choices.slice(0, 3).forEach((c, i) => {
+      const btn = document.createElement('button')
+      btn.className = 'g3d-proj-btn'
+      btn.dataset.idx = String(i)
+      btn.textContent = c.label || `Choix ${i + 1}`
+      btn.style.cssText = `
+        position:absolute;pointer-events:auto;cursor:pointer;
+        padding:10px 16px;border-radius:8px;
+        background:${colors[i]};border:1px solid ${borderColors[i]};
+        color:rgba(255,255,255,0.9);font:13px/1.2 'VT323',monospace;
+        backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+        transition:background 0.15s,transform 0.15s;
+        max-width:220px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      `
+      btn.addEventListener('mouseenter', () => {
+        btn.style.background = borderColors[i] + '44'
+        btn.style.transform = 'scale(1.05)'
+        try { SFX.choiceHover?.() } catch {}
+      })
+      btn.addEventListener('mouseleave', () => {
+        btn.style.background = colors[i]
+        btn.style.transform = 'scale(1)'
+      })
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation()
+        if (this._choiceMade) return
+        this._choiceMade = true
+        try { SFX.choiceSelect?.() } catch {}
+        this._cleanupRaycast?.()
+        // Highlight selected, dim others
+        container.querySelectorAll('.g3d-proj-btn').forEach((b, j) => {
+          b.disabled = true
+          b.style.opacity = j === i ? '1' : '0.2'
+        })
+        this._handleChoice(i)
+      })
+      container.appendChild(btn)
+    })
+
+    document.body.appendChild(container)
+    this._projectedContainer = container
+
+    // Update button positions each frame (project 3D card position to screen)
+    const cam = this._pathCamera?.getCamera() ?? this._world.getCamera()
+    const renderer = this._renderManager?._renderer
+    const updatePositions = () => {
+      if (!this._encounterCard?.group || !renderer || this._choiceMade) {
+        cancelAnimationFrame(this._projRAF)
+        return
+      }
+      const cardPos = this._encounterCard.group.position.clone()
+      // Project card center to screen
+      const projected = cardPos.clone().project(cam)
+      const hw = renderer.domElement.clientWidth / 2
+      const hh = renderer.domElement.clientHeight / 2
+      const screenX = (projected.x * hw) + hw
+      const screenY = -(projected.y * hh) + hh
+
+      // Position buttons relative to card screen position
+      const btns = container.querySelectorAll('.g3d-proj-btn')
+      const btnH = 40
+      const startY = screenY + 20 // below card center
+      btns.forEach((btn, i) => {
+        btn.style.left = `${screenX - 110}px`
+        btn.style.top = `${startY + i * (btnH + 8)}px`
+      })
+      this._projRAF = requestAnimationFrame(updatePositions)
+    }
+    this._projRAF = requestAnimationFrame(updatePositions)
+  }
+
   /** DOM fallback for choice selection (shown after 10s if no raycast click) */
   _showDOMChoiceFallback(card) {
     const center = this._el?.querySelector('#g3d-center')
@@ -660,6 +746,11 @@ export class GameScene3D {
 
     // Cleanup raycast listeners
     this._cleanupRaycast?.()
+
+    // Remove projected choice buttons
+    if (this._projRAF) cancelAnimationFrame(this._projRAF)
+    this._projectedContainer?.remove()
+    this._projectedContainer = null
 
     // Clear fallback timer
     if (this._choiceFallbackTimer) {
