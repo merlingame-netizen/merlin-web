@@ -16,7 +16,7 @@ import { startBiomeDrone, stopBiomeDrone, playEncounterSpawn, playEncounterDismi
 import { SFX } from '../audio/sfx_manager.js'
 import { getIntroText, getSeasonName } from '../data/intro_texts.js'
 import { getScenarioTitle, getScenarioIntro } from '../llm/scenario_generator.js'
-import { getLLMStatus, onStatusChange, prewarmMultiple } from '../llm/prewarm.js'
+import { getLLMStatus, onStatusChange } from '../llm/prewarm.js'
 import { getRealPeriod, getRealSeason } from '../three/lighting_system.js'
 import { FACTIONS, FACTION_INFO } from '../game/constants.js'
 import { getState } from '../game/store.js'
@@ -287,11 +287,7 @@ export class GameScene3D {
       ])
     }
 
-    // Prewarm cards in background (only if run is initialized)
-    const state = getState()
-    if (state?.run) {
-      prewarmMultiple(state, 5).catch(e => console.warn('[Intro] Prewarm failed:', e?.message))
-    }
+    // Prewarm handled by startFirstRun() in main.js — no duplicate here
 
     // 4. Page-turning loop + final "Enter" button
     const totalPages = this._introCard?.pageCount || 1

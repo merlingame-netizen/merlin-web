@@ -1,10 +1,10 @@
 {
   "consoleErrors": [],
   "consoleWarnings": [
-    "[.WebGL-0x9a400ab1400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-    "[.WebGL-0x9a400ab1400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-    "[.WebGL-0x9a400ab1400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-    "[.WebGL-0x9a400ab1400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+    "[.WebGL-0x5c00132900]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x5c00132900]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x5c00132900]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x5c00132900]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
     "[Prewarm] Failed: Cannot read properties of undefined (reading 'active_promises')",
     "[Scenario] Generation failed: Cannot read properties of undefined (reading 'active_promises')",
     "[LLM] Prewarm 1 failed: Cannot read properties of undefined (reading 'active_promises')",
@@ -16,10 +16,7 @@
     "[LLM] Prewarm 5 failed: Cannot read properties of undefined (reading 'active_promises')",
     "[LLM] Generation failed in race: Cannot read properties of undefined (reading 'active_promises')",
     "[LLM] Context build failed, using minimal fallback: Cannot read properties of undefined (reading 'active_promises')",
-    "[Scenario] Generation failed: Cannot read properties of undefined (reading 'active_promises')",
-    "[LLM] Generation failed in race: Cannot read properties of undefined (reading 'active_promises')",
-    "[LLM] Context build failed, using minimal fallback: Cannot read properties of undefined (reading 'active_promises')",
     "[Scenario] Generation failed: Cannot read properties of undefined (reading 'active_promises')"
   ],
-  "screenshotCount": 18
+  "screenshotCount": 17
 }
