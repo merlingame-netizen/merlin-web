@@ -127,6 +127,12 @@ export class GameScene3D {
     this._card3d?.dismiss()
     this._encounterCard?.dismiss()
     this._introCard?.dismiss()
+    // Cleanup pre-placed assets
+    if (this._prePlacedAssets?.length) {
+      const scene = this._world?.getScene()
+      this._prePlacedAssets.forEach(a => { if (a?.group && scene) scene.remove(a.group) })
+      this._prePlacedAssets = []
+    }
     this._interactables?.clear()
     // Remove canvas pointer handler
     const canvas = this._renderManager._renderer?.domElement
@@ -194,6 +200,10 @@ export class GameScene3D {
     // Encounter system
     this._spawner = new EncounterSpawner(this._world.getScene())
     this._effects = new EffectVisuals(this._world.getCamera(), this._world.getScene())
+
+    // Pre-place event assets along the path at encounter positions (visible during walk)
+    this._prePlacedAssets = []
+    this._prePlaceEventsOnPath(pathCurve, biomeKey)
 
     // 3D Card system (legacy single-instance for intro)
     this._card3d = new Card3D(this._world.getScene())
@@ -338,6 +348,42 @@ export class GameScene3D {
     this._started = true
     this._pathCamera.startWalking()
     this._introCleanup = null
+  }
+
+  /** Pre-place thematic assets along the path at future encounter positions */
+  _prePlaceEventsOnPath(pathCurve, biomeKey) {
+    if (!pathCurve) return
+    const scene = this._world.getScene()
+    const heightFn = (x, z) => this._world.heightAt(x, z)
+
+    // Asset types by biome mood — placed at encounter positions, visible during walk
+    const assetPool = [
+      'menhir', 'dolmen', 'stone_circle', 'altar', 'rune_stone',
+      'sacred_tree', 'mushroom_ring', 'torch', 'cairn', 'well',
+      'fallen_tree', 'bridge', 'cross', 'lantern', 'totem',
+    ]
+
+    // Place assets at every other encounter point (not too dense)
+    const encounterPoints = Array.from({ length: 25 }, (_, i) => 0.03 + i * 0.035)
+    for (let i = 0; i < Math.min(encounterPoints.length, 12); i += 2) {
+      const t = encounterPoints[i]
+      const pos = pathCurve.getPointAt(Math.min(t, 0.999))
+      const tangent = pathCurve.getTangentAt(Math.min(t, 0.999))
+
+      // Place asset 3-5 units to the side of path
+      const side = (i % 2 === 0) ? 1 : -1
+      const right = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize()
+      const offset = right.multiplyScalar(side * (3 + Math.random() * 2))
+      const assetPos = pos.clone().add(offset)
+      assetPos.y = heightFn(assetPos.x, assetPos.z) ?? 0
+
+      const assetType = assetPool[i % assetPool.length]
+      const asset = spawnEventAsset(
+        { tags: [assetType], _faction: 'druides' },
+        assetPos, scene, heightFn
+      )
+      if (asset) this._prePlacedAssets.push(asset)
+    }
   }
 
   /** Update LLM dual-brain status panel */
