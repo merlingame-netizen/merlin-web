@@ -157,33 +157,65 @@ test('PLAYTEST: Full game run with screenshots', async ({ page }) => {
   // STEP 6: Play through encounters (if in game)
   // ═══════════════════════════════════════════
   for (let encounter = 0; encounter < 5; encounter++) {
-    await page.waitForTimeout(8000) // Wait for card to appear (LLM or fallback)
+    // Handle minigame overlay if present — click through it
+    for (let wait = 0; wait < 15; wait++) {
+      const dismissed = await page.evaluate(() => {
+        // Click minigame elements (interactive items, canvas, grid items)
+        const mgItems = document.querySelectorAll('[style*="cursor: pointer"], [style*="cursor:pointer"]')
+        if (mgItems.length > 0) {
+          mgItems[Math.floor(Math.random() * mgItems.length)].click()
+          return 'minigame-click'
+        }
+        // Click minigame overlay to dismiss result screen
+        const overlay = document.querySelector('.minigame-overlay, .mg-overlay, [style*="z-index: 60"], [style*="z-index:60"]')
+        if (overlay) { overlay.click(); return 'overlay-click' }
+        // Click any visible canvas (minigame canvas)
+        const canvases = document.querySelectorAll('canvas')
+        for (const c of canvases) {
+          if (c.id !== 'canvas-3d' && c.offsetHeight > 0) {
+            c.click(); return 'minigame-canvas-click'
+          }
+        }
+        return null
+      })
+      if (!dismissed) break
+      await page.waitForTimeout(500)
+    }
+
+    // Wait for choice bar or card to appear (up to 15s)
+    let foundChoices = false
+    for (let wait = 0; wait < 15; wait++) {
+      const hasChoices = await page.evaluate(() => {
+        const slim = document.querySelectorAll('.g3d-slim-choice')
+        const choice = document.querySelectorAll('.choice-btn, [class*="choice"]')
+        return slim.length > 0 || choice.length > 0
+      })
+      if (hasChoices) { foundChoices = true; break }
+      await page.waitForTimeout(1000)
+    }
     await shot(page, `06_encounter_${encounter}`)
 
-    // Try to make a choice
+    // Click a DOM choice (slim bar preferred)
     const choice = await page.evaluate(() => {
-      // Look for choice buttons/zones
-      const choiceBtns = document.querySelectorAll('.choice-btn, .choice-zone, [class*="choice"]')
+      // Slim bar choices (bottom bar)
+      const slimChoices = document.querySelectorAll('.g3d-slim-choice')
+      if (slimChoices.length > 0) {
+        const idx = Math.floor(Math.random() * slimChoices.length)
+        slimChoices[idx].click()
+        return `slim-${idx} of ${slimChoices.length}: "${slimChoices[idx].textContent.trim()}"`
+      }
+      // Other choice elements
+      const choiceBtns = document.querySelectorAll('.choice-btn, [class*="choice"]')
       if (choiceBtns.length > 0) {
         const idx = Math.floor(Math.random() * choiceBtns.length)
         choiceBtns[idx].click()
         return `choice-${idx} of ${choiceBtns.length}`
       }
-      // Try clicking on canvas (raycast choice)
-      const canvas = document.querySelector('#canvas-3d')
-      if (canvas) {
-        // Click in the middle-left area (choice 0)
-        const rect = canvas.getBoundingClientRect()
-        const x = rect.left + rect.width * 0.25
-        const y = rect.top + rect.height * 0.7
-        canvas.dispatchEvent(new MouseEvent('click', { clientX: x, clientY: y, bubbles: true }))
-        return 'canvas-raycast-click'
-      }
       return null
     })
-    console.log(`[PLAYTEST] Encounter ${encounter}: ${choice || 'no-choice-found'}`)
+    console.log(`[PLAYTEST] Encounter ${encounter}: ${choice || 'no-choice-found (waiting)'}`)
 
-    await page.waitForTimeout(3000)
+    await page.waitForTimeout(2000)
     await shot(page, `06_encounter_${encounter}_after_choice`)
   }
 

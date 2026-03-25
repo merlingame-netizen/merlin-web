@@ -1,11 +1,11 @@
 {
   "consoleErrors": [],
   "consoleWarnings": [
-    "[.WebGL-0x20f400a8d500]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-    "[.WebGL-0x20f400a8d500]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-    "[.WebGL-0x20f400a8d500]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-    "[.WebGL-0x20f400a8d500]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+    "[.WebGL-0x42ac00a68d00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x42ac00a68d00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
     "[Prewarm] Failed: Cannot read properties of undefined (reading 'active_promises')",
+    "[.WebGL-0x42ac00a68d00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x42ac00a68d00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
     "[Scenario] Generation failed: Cannot read properties of undefined (reading 'active_promises')",
     "[LLM] Prewarm 1 failed: Cannot read properties of undefined (reading 'active_promises')",
     "[LLM] Prewarm 2 failed: Cannot read properties of undefined (reading 'active_promises')",
@@ -18,5 +18,5 @@
     "[LLM] Context build failed, using minimal fallback: Cannot read properties of undefined (reading 'active_promises')",
     "[Scenario] Generation failed: Cannot read properties of undefined (reading 'active_promises')"
   ],
-  "screenshotCount": 17
+  "screenshotCount": 18
 }
