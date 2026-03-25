@@ -17,6 +17,7 @@ export function setRegistries(reg) {
 
 export function buildNarratorContext(state) {
   const { run } = state
+  if (!run) return { error: 'run not initialized' }
   const biome = getBiome(run.biome_key)
   const season = SEASONS[run.season_index % SEASONS.length]
 

@@ -241,7 +241,12 @@ export class GameScene3D {
     // 2. Get scenario intro text (from LLM or fallback)
     const scenarioIntro = getScenarioIntro()
     const introData = getIntroText(biomeKey, seasonIndex)
-    const introText = scenarioIntro || (Array.isArray(introData) ? introData.join(' ') : String(introData))
+    let introText = scenarioIntro || (Array.isArray(introData) ? introData.join(' ') : String(introData))
+    // Cap intro text to ~150 chars to keep typewriter under 5s at 30ms/char
+    if (introText.length > 150) {
+      const cutPoint = introText.lastIndexOf('.', 150)
+      introText = introText.substring(0, cutPoint > 50 ? cutPoint + 1 : 150)
+    }
     const scenarioTitle = this._scenarioTitle || 'Broceliande'
 
     // 3. Spawn a PARCHMENT card in 3D (drops from above)
@@ -272,12 +277,21 @@ export class GameScene3D {
       SFX.cardReveal()
 
       // Text writes on page 1
+      // 80 chars/sec batched = ~2s for 150 chars, smooth rendering
       await this._introCard.animateText(introCardData, 80)
+
+      // Scale pulse + edge glow when text finishes
+      await Promise.all([
+        this._introCard.pulseScale(),
+        this._introCard.flashEdgeGlow(),
+      ])
     }
 
-    // Prewarm cards in background
+    // Prewarm cards in background (only if run is initialized)
     const state = getState()
-    prewarmMultiple(state, 5).catch(e => console.warn('[Intro] Prewarm failed:', e?.message))
+    if (state?.run) {
+      prewarmMultiple(state, 5).catch(e => console.warn('[Intro] Prewarm failed:', e?.message))
+    }
 
     // 4. Page-turning loop + final "Enter" button
     const totalPages = this._introCard?.pageCount || 1
@@ -476,6 +490,12 @@ export class GameScene3D {
     await this._encounterCard.flipIn(cam.position)
     SFX.cardReveal()
 
+    // Scale pulse + edge glow after reveal
+    await Promise.all([
+      this._encounterCard.pulseScale(),
+      this._encounterCard.flashEdgeGlow(),
+    ])
+
     // 4. Setup raycasting for choice selection on the 3D card
     this._setupCardRaycast(card)
 
@@ -493,42 +513,58 @@ export class GameScene3D {
     const pointer = new THREE.Vector2()
     this._choiceMade = false
 
-    const onClick = (event) => {
-      if (this._choiceMade) return
-
-      // Get normalized coordinates
+    // Helper: raycast to card and return choice index + UV
+    const _raycastToCard = (clientX, clientY) => {
       const rect = this._renderManager?._renderer?.domElement?.getBoundingClientRect()
-      if (!rect) return
-      const clientX = event.clientX ?? event.changedTouches?.[0]?.clientX
-      const clientY = event.clientY ?? event.changedTouches?.[0]?.clientY
-      if (clientX == null || clientY == null) return
+      if (!rect) return -1
+      if (clientX == null || clientY == null) return -1
 
       pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
       pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
 
       raycaster.setFromCamera(pointer, this._world.getCamera())
 
-      // Check intersection with encounter card mesh
       const cardGroup = this._encounterCard?.group
-      if (!cardGroup) return
+      if (!cardGroup) return -1
 
       const intersects = raycaster.intersectObject(cardGroup, true)
       if (intersects.length > 0 && intersects[0].uv) {
-        const choiceIdx = this._encounterCard.getChoiceAtUV(intersects[0].uv)
-        if (choiceIdx >= 0) {
-          this._choiceMade = true
-          // SFX
-          try { SFX.choiceSelect() } catch (e) { /* ignore */ }
-          // Remove listeners
-          this._cleanupRaycast?.()
-          // Clear fallback timer
-          if (this._choiceFallbackTimer) {
-            clearTimeout(this._choiceFallbackTimer)
-            this._choiceFallbackTimer = null
-          }
-          // Process choice
-          this._handleChoice(choiceIdx)
+        return this._encounterCard.getChoiceAtUV(intersects[0].uv)
+      }
+      return -1
+    }
+
+    // Hover: highlight choice zone on mousemove
+    const onMove = (event) => {
+      if (this._choiceMade || !this._encounterCard) return
+      const choiceIdx = _raycastToCard(event.clientX, event.clientY)
+      this._encounterCard.highlightChoice(choiceIdx)
+    }
+
+    const onClick = (event) => {
+      if (this._choiceMade) return
+
+      const clientX = event.clientX ?? event.changedTouches?.[0]?.clientX
+      const clientY = event.clientY ?? event.changedTouches?.[0]?.clientY
+      const choiceIdx = _raycastToCard(clientX, clientY)
+
+      if (choiceIdx >= 0) {
+        this._choiceMade = true
+        // Clear hover highlight
+        this._encounterCard?.highlightChoice(-1)
+        // SFX
+        try { SFX.choiceSelect() } catch (e) { /* ignore */ }
+        // Flash white confirm
+        this._encounterCard?.flashChoiceConfirm()
+        // Remove listeners
+        this._cleanupRaycast?.()
+        // Clear fallback timer
+        if (this._choiceFallbackTimer) {
+          clearTimeout(this._choiceFallbackTimer)
+          this._choiceFallbackTimer = null
         }
+        // Process choice (slight delay for flash to register)
+        setTimeout(() => this._handleChoice(choiceIdx), 100)
       }
     }
 
@@ -565,14 +601,18 @@ export class GameScene3D {
       }
     }
 
+    document.addEventListener('mousemove', onMove)
     document.addEventListener('click', onClick)
     document.addEventListener('touchend', onTouch)
     document.addEventListener('keydown', onKeydown)
 
     this._cleanupRaycast = () => {
+      document.removeEventListener('mousemove', onMove)
       document.removeEventListener('click', onClick)
       document.removeEventListener('touchend', onTouch)
       document.removeEventListener('keydown', onKeydown)
+      // Clear hover state on cleanup
+      this._encounterCard?.highlightChoice(-1)
       this._cleanupRaycast = null
     }
   }

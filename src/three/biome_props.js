@@ -18,8 +18,15 @@ const WIND_VERTEX = `
   void main() {
     vec3 pos = position;
     float windFactor = smoothstep(0.0, 0.5, pos.y);
-    pos.x += sin(uTime * 2.0 + pos.x * 3.0 + pos.z * 2.0) * uWindStrength * windFactor;
-    pos.z += cos(uTime * 1.5 + pos.z * 4.0) * uWindStrength * 0.5 * windFactor;
+    // Perlin-like variation: sum of multiple sin frequencies for non-uniform wind
+    float windX = sin(uTime * 2.0 + pos.x * 3.0 + pos.z * 2.0)
+                + 0.5 * sin(uTime * 3.7 + pos.x * 1.3 + pos.z * 4.1)
+                + 0.25 * sin(uTime * 5.3 + pos.x * 7.0 + pos.z * 0.8);
+    float windZ = cos(uTime * 1.5 + pos.z * 4.0)
+                + 0.4 * cos(uTime * 2.9 + pos.z * 1.7 + pos.x * 3.3)
+                + 0.2 * cos(uTime * 4.1 + pos.z * 6.0 + pos.x * 1.1);
+    pos.x += windX * uWindStrength * 0.57 * windFactor;
+    pos.z += windZ * uWindStrength * 0.33 * windFactor;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
   }
 `

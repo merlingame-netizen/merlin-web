@@ -33,7 +33,7 @@ export class EffectVisuals {
     this._spawnRing(0x33ff66)
   }
 
-  // Shift faction: color flash based on faction
+  // Shift faction: color flash + subtle screen tint matching faction
   playShiftFaction(faction) {
     const colors = {
       druides: 0x22c55e,
@@ -43,7 +43,10 @@ export class EffectVisuals {
       pretresses: 0xec4899,
       anciens: 0x94a3b8,
     }
-    this._flashScreen(colors[faction] ?? 0xffbe33, 0.25, 350)
+    const color = colors[faction] ?? 0xffbe33
+    this._flashScreen(color, 0.25, 350)
+    // Additional colored screen tint — subtle but noticeable
+    this._screenTint(color, 0.15, 400)
   }
 
   // Legacy compat
@@ -74,6 +77,39 @@ export class EffectVisuals {
       el.style.opacity = '0'
       setTimeout(() => el.remove(), duration)
     })
+  }
+
+  /**
+   * Colored screen tint overlay — fades in then out over duration.
+   * More sustained than flashScreen: holds at peak opacity briefly.
+   */
+  _screenTint(color, alpha, duration) {
+    const el = document.createElement('div')
+    const c = new THREE.Color(color)
+    const r = Math.round(c.r * 255)
+    const g = Math.round(c.g * 255)
+    const b = Math.round(c.b * 255)
+    el.style.cssText = `
+      position:fixed;inset:0;z-index:49;
+      background:rgba(${r},${g},${b},0);
+      pointer-events:none;
+    `
+    document.body.appendChild(el)
+
+    let start = null
+    const animate = (ts) => {
+      if (!start) start = ts
+      const t = Math.min((ts - start) / duration, 1)
+      // Triangle envelope: fade in first half, fade out second half
+      const envelope = t < 0.5 ? t * 2 : (1 - t) * 2
+      el.style.background = `rgba(${r},${g},${b},${(alpha * envelope).toFixed(3)})`
+      if (t < 1) {
+        requestAnimationFrame(animate)
+      } else {
+        el.remove()
+      }
+    }
+    requestAnimationFrame(animate)
   }
 
   _spawnRing(color) {

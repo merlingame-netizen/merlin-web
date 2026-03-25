@@ -1,0 +1,24 @@
+{
+  "consoleErrors": [
+    "this._pathCamera?.getCamera is not a function"
+  ],
+  "consoleWarnings": [
+    "[.WebGL-0x63cc00aad500]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x63cc00aad500]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x63cc00aad500]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[Prewarm] Failed: Cannot read properties of undefined (reading 'active_promises')",
+    "[.WebGL-0x63cc00aad500]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+    "[Scenario] Generation failed: Cannot read properties of undefined (reading 'active_promises')",
+    "[LLM] Prewarm 1 failed: Cannot read properties of undefined (reading 'active_promises')",
+    "[LLM] Prewarm 2 failed: Cannot read properties of undefined (reading 'active_promises')",
+    "[LLM] Prewarm 1 failed: Cannot read properties of undefined (reading 'active_promises')",
+    "[LLM] Prewarm 2 failed: Cannot read properties of undefined (reading 'active_promises')",
+    "[LLM] Prewarm 3 failed: Cannot read properties of undefined (reading 'active_promises')",
+    "[LLM] Prewarm 4 failed: Cannot read properties of undefined (reading 'active_promises')",
+    "[LLM] Prewarm 5 failed: Cannot read properties of undefined (reading 'active_promises')",
+    "[LLM] Generation failed in race: Cannot read properties of undefined (reading 'active_promises')",
+    "[LLM] Context build failed, using minimal fallback: Cannot read properties of undefined (reading 'active_promises')",
+    "[Scenario] Generation failed: Cannot read properties of undefined (reading 'active_promises')"
+  ],
+  "screenshotCount": 17
+}

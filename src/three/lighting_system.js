@@ -30,13 +30,20 @@ const SEASON_MODS = {
   hiver:     { ground: 0.7,  canopy: 0.6, fogDensity: 1.5, sunWarmth: -0.1 },
 }
 
+// Biome color grading:
+// - Forest (broceliande/huelgoat): green-tinted ambient
+// - Marais-like (monts): purple/blue fog ambient
+// - Cotes: bright blue-white ambient
+// - Landes: warm amber ambient
+// - Ecosse: heather purple-grey
+// - Iles mystiques: golden glow
 const LIGHT_PROFILES = {
-  broceliande:    { sunColor: 0xddcc88, sunIntensity: 1.2, ambColor: 0x4a7a4a, ambIntensity: 0.85, sunDir: [1, 2, 0.5] },
-  landes:         { sunColor: 0xbbbbaa, sunIntensity: 1.0, ambColor: 0x6a6a60, ambIntensity: 0.8, sunDir: [0, 2, 1] },
-  cotes:          { sunColor: 0xbbccdd, sunIntensity: 1.4, ambColor: 0x5a7590, ambIntensity: 0.7, sunDir: [-1, 2, 0.5] },
-  monts:          { sunColor: 0x776677, sunIntensity: 0.7, ambColor: 0x3a3a50, ambIntensity: 0.5, sunDir: [0, 1, -1] },
+  broceliande:    { sunColor: 0xddcc88, sunIntensity: 1.2, ambColor: 0x3a7a3a, ambIntensity: 0.85, sunDir: [1, 2, 0.5] },
+  landes:         { sunColor: 0xccbb88, sunIntensity: 1.0, ambColor: 0x7a6a40, ambIntensity: 0.8, sunDir: [0, 2, 1] },
+  cotes:          { sunColor: 0xccddee, sunIntensity: 1.4, ambColor: 0x6a88aa, ambIntensity: 0.75, sunDir: [-1, 2, 0.5] },
+  monts:          { sunColor: 0x776677, sunIntensity: 0.7, ambColor: 0x3a3060, ambIntensity: 0.5, sunDir: [0, 1, -1] },
   ile_sein:       { sunColor: 0x8899dd, sunIntensity: 1.1, ambColor: 0x4a6080, ambIntensity: 0.8, sunDir: [0, 3, 1] },
-  huelgoat:       { sunColor: 0x99dd77, sunIntensity: 0.9, ambColor: 0x3a6a3a, ambIntensity: 0.7, sunDir: [1, 1, 0] },
+  huelgoat:       { sunColor: 0x99dd77, sunIntensity: 0.9, ambColor: 0x2a6a2a, ambIntensity: 0.7, sunDir: [1, 1, 0] },
   ecosse:         { sunColor: 0xbbaa99, sunIntensity: 0.9, ambColor: 0x4a4560, ambIntensity: 0.7, sunDir: [1, 2, -0.5] },
   iles_mystiques: { sunColor: 0xffdd88, sunIntensity: 1.5, ambColor: 0x6a6545, ambIntensity: 0.9, sunDir: [0, 3, 0] },
 }

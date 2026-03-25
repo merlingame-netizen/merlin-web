@@ -400,7 +400,7 @@ export class Card3D {
   }
 
   /**
-   * Flip in: scale up + rotate to show face
+   * Flip in: scale up + rotate to show face + float-up from below
    */
   flipIn(camPos) {
     if (!this._group) return Promise.resolve()
@@ -409,6 +409,10 @@ export class Card3D {
     // Face the camera using manual Y rotation
     if (camPos) this.faceCamera(camPos)
     const baseRotY = this._group.rotation.y
+
+    // Float-up: start 0.5 below target position
+    const targetY = this._group.position.y
+    this._group.position.y = targetY - 0.5
 
     return new Promise(resolve => {
       const start = performance.now()
@@ -421,6 +425,9 @@ export class Card3D {
         // Scale up from 0 — card already faces camera
         this._group.scale.setScalar(Math.max(0.01, ease))
 
+        // Float up from -0.5 to target Y (eased)
+        this._group.position.y = targetY - 0.5 * (1 - ease)
+
         // Keep facing camera, no extra rotation
         this._group.rotation.y = baseRotY
 
@@ -429,6 +436,7 @@ export class Card3D {
         if (t < 1) {
           requestAnimationFrame(animate)
         } else {
+          this._group.position.y = targetY
           this._state = 'visible'
           resolve()
         }
@@ -473,6 +481,65 @@ export class Card3D {
   }
 
   /**
+   * Subtle scale pulse (1.0 → 1.05 → 1.0 over 300ms) — call after text finishes writing
+   */
+  pulseScale() {
+    if (!this._group || this._state !== 'visible') return Promise.resolve()
+    return new Promise(resolve => {
+      const start = performance.now()
+      const dur = 300
+      const animate = () => {
+        const t = Math.min((performance.now() - start) / dur, 1)
+        // Sine curve: 0 → 1 → 0
+        const pulse = Math.sin(t * Math.PI)
+        this._group.scale.setScalar(1.0 + pulse * 0.05)
+        if (t < 1) requestAnimationFrame(animate)
+        else { this._group.scale.setScalar(1.0); resolve() }
+      }
+      requestAnimationFrame(animate)
+    })
+  }
+
+  /**
+   * Brief emissive glow flash on card edges (200ms)
+   */
+  flashEdgeGlow() {
+    if (!this._group) return Promise.resolve()
+    const front = this._group.children[0]
+    if (!front?.material) return Promise.resolve()
+
+    // Switch to MeshStandardMaterial temporarily for emissive support
+    const oldMat = front.material
+    const glowMat = new THREE.MeshStandardMaterial({
+      map: oldMat.map,
+      side: THREE.DoubleSide,
+      emissive: new THREE.Color(0xffcc55),
+      emissiveIntensity: 0.0,
+    })
+    front.material = glowMat
+
+    return new Promise(resolve => {
+      const start = performance.now()
+      const dur = 200
+      const animate = () => {
+        const t = Math.min((performance.now() - start) / dur, 1)
+        // Flash up then down
+        const intensity = Math.sin(t * Math.PI) * 0.4
+        glowMat.emissiveIntensity = intensity
+        if (t < 1) {
+          requestAnimationFrame(animate)
+        } else {
+          // Restore original material
+          front.material = oldMat
+          glowMat.dispose()
+          resolve()
+        }
+      }
+      requestAnimationFrame(animate)
+    })
+  }
+
+  /**
    * Animate text appearing on card face (typewriter on CanvasTexture)
    */
   animateText(card, charsPerSec = 50) {
@@ -481,16 +548,17 @@ export class Card3D {
     if (!front?.material?.map) return Promise.resolve()
 
     const fullText = card.text || ''
+    // Batch chars per render to avoid 1024x1536 canvas thrashing
+    const charsPerTick = Math.max(3, Math.ceil(charsPerSec / 15))
+    const interval = Math.max(33, 1000 * charsPerTick / charsPerSec) // ~15 renders/sec max
 
     return new Promise(resolve => {
       let charCount = 0
-      const interval = 1000 / charsPerSec
       const tick = setInterval(() => {
-        charCount += 1 // 1 char per tick for intended speed
+        charCount += charsPerTick
         if (charCount >= fullText.length) {
           charCount = fullText.length
           clearInterval(tick)
-          // Final render
           this._updateFaceTexture(front, card, charCount)
           resolve()
           return
@@ -663,6 +731,62 @@ export class Card3D {
     }
     this._choiceZones = null
     this._state = 'dismissed'
+  }
+
+  /**
+   * Highlight a choice zone (hover effect) — brightens emissive on front material.
+   * Pass -1 to clear highlight.
+   */
+  highlightChoice(choiceIdx) {
+    if (this._highlightedChoice === choiceIdx) return
+    this._highlightedChoice = choiceIdx
+
+    const front = this._group?.children[0]
+    if (!front?.material) return
+
+    if (choiceIdx >= 0 && this._choiceZones?.[choiceIdx]) {
+      // Apply subtle brightness boost via emissive on a StandardMaterial
+      if (!this._hoverMat) {
+        const oldMat = front.material
+        this._hoverMat = new THREE.MeshStandardMaterial({
+          map: oldMat.map,
+          side: THREE.DoubleSide,
+          emissive: new THREE.Color(0xffffff),
+          emissiveIntensity: 0.08,
+        })
+        this._originalMat = oldMat
+      }
+      front.material = this._hoverMat
+      // Sync map in case texture changed
+      if (this._originalMat?.map) this._hoverMat.map = this._originalMat.map
+    } else {
+      // Restore original material
+      if (this._originalMat) {
+        front.material = this._originalMat
+        if (this._hoverMat) { this._hoverMat.dispose(); this._hoverMat = null }
+        this._originalMat = null
+      }
+    }
+  }
+
+  /**
+   * Flash the card white briefly (100ms) — call on choice click before processing.
+   */
+  flashChoiceConfirm() {
+    return new Promise(resolve => {
+      const el = document.createElement('div')
+      el.style.cssText = `
+        position:fixed;inset:0;z-index:55;
+        background:rgba(255,255,255,0.25);
+        pointer-events:none;
+        transition:opacity 100ms;
+      `
+      document.body.appendChild(el)
+      requestAnimationFrame(() => {
+        el.style.opacity = '0'
+        setTimeout(() => { el.remove(); resolve() }, 100)
+      })
+    })
   }
 
   get state() { return this._state }

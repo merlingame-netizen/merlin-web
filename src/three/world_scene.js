@@ -203,7 +203,8 @@ export class WorldScene {
   }
 
   update(dt, elapsed) {
-    this._ambient?.update(dt, this._camera.position)
+    const sunDir = this._lighting?._sun?.position ?? null
+    this._ambient?.update(dt, this._camera.position, this._camera, sunDir)
     this._billboards?.update(dt, this._camera)
     this._volumetric?.update(dt, elapsed, this._camera.position)
 
