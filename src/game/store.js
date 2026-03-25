@@ -128,8 +128,11 @@ function _reduce(state, action, payload) {
       state.run.decision_history = state.run.decision_history ?? []
       state.run.decision_history.push({
         card: state.run.cards_played,
+        card_title: state.run.current_card?.title ?? '',
+        choice_label: state.run.current_card?.choices?.[option_index]?.label ?? '',
         option: option_index,
         effects: effects.slice(0, 5),
+        outcome: effects.some(e => e.includes('DAMAGE')) ? 'risqué' : 'neutre',
       })
       if (state.run.decision_history.length > 50) state.run.decision_history.shift()
 

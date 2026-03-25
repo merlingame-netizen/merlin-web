@@ -97,6 +97,16 @@ export function buildNarratorContext(state) {
 
     ragSections.bestiole = `Bestiole bond: ${state.bestiole?.bond ?? 50}/100`
 
+    // Story recap: concise summary of recent events for narrative coherence
+    const history = run.decision_history ?? []
+    if (history.length > 0) {
+      const recent = history.slice(-5) // Last 5 choices
+      const recap = recent.map(d =>
+        `- "${d.card_title || '?'}": choisi "${d.choice_label || '?'}" (${d.outcome || 'neutre'})`
+      ).join('\n')
+      ragSections.story_recap = `[Résumé du parcours]\n${recap}`
+    }
+
     base.rag_context = buildRAGContext(ragSections)
   }
 
