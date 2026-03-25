@@ -69,7 +69,17 @@ export async function generateScenario(state) {
       if (validCards.length >= 3) {
         const title = data.parsed.title || data.parsed.scenario_title || validCards[0]?.title || 'Rencontre en Broceliande'
         const intro = data.parsed.intro || null
-        _scenario = { cards: validCards, index: 0, title, intro }
+
+        // Build path_events from cards' scene_tags (positioned along path)
+        const path_events = validCards.map((c, i) => ({
+          position: 0.03 + i * 0.035, // match encounter points
+          type: c.scene_tag || 'glow',
+          tag: c.scene_tag || 'glow',
+          mood: c.tags?.includes('danger') ? 'danger' : (c.tags?.includes('sacred') ? 'sacred' : 'neutral'),
+          cardIndex: i,
+        }))
+
+        _scenario = { cards: validCards, index: 0, title, intro, path_events }
         console.log(`[Scenario] Generated ${validCards.length}-card arc: "${_scenario.title}"`)
         if (intro) console.log(`[Scenario] Intro: ${intro.slice(0, 80)}...`)
         return true
@@ -101,7 +111,14 @@ const VALID_SCENE_TAGS = new Set([
   'stream', 'bridge', 'merchant', 'stone_circle', 'campfire', 'ancient_tree',
   'cave', 'cairn', 'fountain', 'animal', 'fairy', 'menhir', 'dolmen', 'mist',
   'flower_bush', 'fork', 'boat', 'mushrooms', 'weapons', 'ruins', 'bird', 'totem',
+  // Phase 6 new assets
+  'well', 'altar', 'rune_stone', 'torch', 'sacred_tree', 'wolf', 'deer',
+  'portal', 'waterfall', 'cauldron', 'lantern', 'grave', 'wagon', 'spirit', 'throne',
 ])
+
+export function getPathEvents() {
+  return _scenario?.path_events ?? []
+}
 
 function _validateAndNormalize(cards) {
   const valid = []

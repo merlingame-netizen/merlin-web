@@ -15,7 +15,7 @@ import { updateTweens } from '../three/tween_engine.js'
 import { startBiomeDrone, stopBiomeDrone, playEncounterSpawn, playEncounterDismiss } from '../audio/spatial_audio.js'
 import { SFX } from '../audio/sfx_manager.js'
 import { getIntroText, getSeasonName } from '../data/intro_texts.js'
-import { getScenarioTitle, getScenarioIntro } from '../llm/scenario_generator.js'
+import { getScenarioTitle, getScenarioIntro, getPathEvents } from '../llm/scenario_generator.js'
 import { getLLMStatus, onStatusChange } from '../llm/prewarm.js'
 import { getRealPeriod, getRealSeason } from '../three/lighting_system.js'
 import { FACTIONS, FACTION_INFO } from '../game/constants.js'
@@ -350,40 +350,47 @@ export class GameScene3D {
     this._introCleanup = null
   }
 
-  /** Pre-place thematic assets along the path at future encounter positions */
+  /** Pre-place event assets along path — uses scenario path_events if available */
   _prePlaceEventsOnPath(pathCurve, biomeKey) {
     if (!pathCurve) return
     const scene = this._world.getScene()
     const heightFn = (x, z) => this._world.heightAt(x, z)
 
-    // Asset types by biome mood — placed at encounter positions, visible during walk
-    const assetPool = [
-      'menhir', 'dolmen', 'stone_circle', 'altar', 'rune_stone',
-      'sacred_tree', 'mushroom_ring', 'torch', 'cairn', 'well',
-      'fallen_tree', 'bridge', 'cross', 'lantern', 'totem',
+    // Use scenario path_events (from LLM) if available, else fallback pool
+    const pathEvents = getPathEvents()
+    const fallbackPool = [
+      'menhir', 'dolmen', 'sacred_tree', 'altar', 'cairn',
+      'torch', 'lantern', 'well', 'rune_stone', 'totem',
+      'waterfall', 'cauldron', 'portal', 'spirit', 'deer',
     ]
 
-    // Place assets at every other encounter point (not too dense)
     const encounterPoints = Array.from({ length: 25 }, (_, i) => 0.03 + i * 0.035)
-    for (let i = 0; i < Math.min(encounterPoints.length, 12); i += 2) {
-      const t = encounterPoints[i]
+    const count = Math.min(encounterPoints.length, 12)
+
+    for (let i = 0; i < count; i++) {
+      // Use scenario event tag if available, else cycle through pool
+      const event = pathEvents[i]
+      const assetTag = event?.tag || fallbackPool[i % fallbackPool.length]
+      const t = event?.position || encounterPoints[i]
+
       const pos = pathCurve.getPointAt(Math.min(t, 0.999))
       const tangent = pathCurve.getTangentAt(Math.min(t, 0.999))
 
-      // Place asset 3-5 units to the side of path
+      // Alternate sides of path, closer for even indices
       const side = (i % 2 === 0) ? 1 : -1
+      const dist = 2.5 + Math.random() * 2
       const right = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize()
-      const offset = right.multiplyScalar(side * (3 + Math.random() * 2))
-      const assetPos = pos.clone().add(offset)
+      const assetPos = pos.clone().add(right.clone().multiplyScalar(side * dist))
       assetPos.y = heightFn(assetPos.x, assetPos.z) ?? 0
 
-      const assetType = assetPool[i % assetPool.length]
       const asset = spawnEventAsset(
-        { tags: [assetType], _faction: 'druides' },
+        { tags: [assetTag], scene_tag: assetTag, _faction: 'druides' },
         assetPos, scene, heightFn
       )
       if (asset) this._prePlacedAssets.push(asset)
     }
+
+    console.log(`[Game3D] Pre-placed ${this._prePlacedAssets.length} assets (${pathEvents.length} from scenario)`)
   }
 
   /** Update LLM dual-brain status panel */
