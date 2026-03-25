@@ -383,7 +383,16 @@ const GAMES = {
  */
 export async function playInteractiveMinigame(type, context = {}) {
   const playFn = GAMES[type] || playSangFroid
-  const result = await playFn()
+
+  // Safety timeout: auto-resolve after 10s if player doesn't interact
+  const autoResolve = new Promise(resolve =>
+    setTimeout(() => {
+      // Clean up any lingering minigame overlay
+      document.querySelectorAll('[style*="z-index:60"], [style*="z-index: 60"]').forEach(el => el.remove())
+      resolve({ score: 50, success: true })
+    }, 10000)
+  )
+  const result = await Promise.race([playFn(), autoResolve])
 
   // Map score to d20-like result for compatibility
   const critical = result.score >= 95
