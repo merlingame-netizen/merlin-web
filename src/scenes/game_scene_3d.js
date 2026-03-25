@@ -350,6 +350,84 @@ export class GameScene3D {
     this._introCleanup = null
   }
 
+  /** Fork choice — visual path split, player picks a direction */
+  _showForkChoice() {
+    this._encounterActive = true
+    this._forkShown = true
+
+    const forkPaths = [
+      { label: 'Le sentier lumineux', mood: 'sacred', color: '#33ff66', icon: '✦' },
+      { label: 'Le chemin des ombres', mood: 'danger', color: '#ff5533', icon: '◆' },
+      { label: 'La voie des brumes', mood: 'mystic', color: '#4dd9cc', icon: '◈' },
+    ]
+
+    // Show fork UI as DOM overlay
+    const container = document.createElement('div')
+    container.id = 'fork-choice'
+    container.style.cssText = `
+      position:fixed;inset:0;z-index:35;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;pointer-events:none;
+      background:radial-gradient(ellipse at center, rgba(0,0,0,0.4) 0%, transparent 70%);
+    `
+
+    const title = document.createElement('div')
+    title.textContent = 'Le sentier se divise...'
+    title.style.cssText = `
+      color:#FFBF33;font:bold 24px 'VT323',monospace;margin-bottom:30px;
+      text-shadow:0 0 12px rgba(255,191,51,0.4);pointer-events:none;
+      animation: fadeIn 0.8s ease-out;
+    `
+    container.appendChild(title)
+
+    const btnWrap = document.createElement('div')
+    btnWrap.style.cssText = 'display:flex;gap:16px;pointer-events:auto;flex-wrap:wrap;justify-content:center;'
+
+    forkPaths.forEach((path, i) => {
+      const btn = document.createElement('button')
+      btn.style.cssText = `
+        padding:16px 24px;border-radius:10px;cursor:pointer;
+        background:rgba(6,13,6,0.88);border:2px solid ${path.color};
+        color:${path.color};font:16px/1.3 'VT323',monospace;
+        backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+        transition:transform 0.15s,box-shadow 0.15s;min-width:160px;
+      `
+      btn.innerHTML = `<span style="font-size:20px">${path.icon}</span><br>${path.label}`
+      btn.addEventListener('mouseenter', () => {
+        btn.style.transform = 'scale(1.08)'
+        btn.style.boxShadow = `0 0 20px ${path.color}44`
+        try { SFX.choiceHover?.() } catch {}
+      })
+      btn.addEventListener('mouseleave', () => {
+        btn.style.transform = 'scale(1)'
+        btn.style.boxShadow = 'none'
+      })
+      btn.addEventListener('click', () => {
+        try { SFX.choiceSelect?.() } catch {}
+        // Apply fork mood to the world
+        this._world.setMood(path.mood)
+        // Remove fork UI
+        container.remove()
+        this._encounterActive = false
+        // Resume walking
+        this._pathCamera?.resumeAfterChoice()
+        console.log(`[Fork] Player chose: ${path.label} (${path.mood})`)
+      })
+      btnWrap.appendChild(btn)
+    })
+
+    container.appendChild(btnWrap)
+    document.body.appendChild(container)
+
+    // Auto-dismiss after 15s if no choice
+    setTimeout(() => {
+      if (container.parentNode) {
+        container.remove()
+        this._encounterActive = false
+        this._pathCamera?.resumeAfterChoice()
+      }
+    }, 15000)
+  }
+
   /** Pre-place event assets along path — uses scenario path_events if available */
   _prePlaceEventsOnPath(pathCurve, biomeKey) {
     if (!pathCurve) return
@@ -445,10 +523,16 @@ export class GameScene3D {
       this._scenarioTitle = scenarioData.title
     }
 
-    // Show encounter if card present
+    // Show encounter or fork
     const card = run.current_card
     if (card && !this._encounterActive) {
-      this._showEncounter(card)
+      // Every 5th encounter = fork (visual path choice, no card)
+      if (run.cards_played > 0 && run.cards_played % 5 === 0 && !this._forkShown) {
+        this._showForkChoice()
+      } else {
+        this._forkShown = false
+        this._showEncounter(card)
+      }
     }
   }
 
