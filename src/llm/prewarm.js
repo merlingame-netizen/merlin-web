@@ -92,6 +92,14 @@ function _defaultEffects() {
   }
 }
 
+function _healingEffects() {
+  return {
+    effects_0: ['HEAL_LIFE:1', 'SHIFT_FACTION:druides:5'],
+    effects_1: ['HEAL_LIFE:1', 'ADD_KARMA:10', 'SHIFT_FACTION:pretresses:5'],
+    effects_2: ['SHIFT_FACTION:anciens:5', 'MODIFY_BOND:5'],
+  }
+}
+
 // Last-resort card when everything else fails
 function _emergencyCard() {
   return {
@@ -113,7 +121,10 @@ function _buildFallbackWithEffects(state) {
     const ctx = buildNarratorContext(state)
     const card = getFallbackCard(ctx)
     if (card) {
-      card._effects = _defaultEffects()
+      // Healing cards get healing effects
+      card._effects = card.tags?.includes('healing')
+        ? _healingEffects()
+        : _defaultEffects()
       return card
     }
   } catch (err) {

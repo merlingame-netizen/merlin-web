@@ -48,6 +48,14 @@ export const FALLBACK_POOLS = {
     card('e10', 'Le Vieux Pont',
       'Un pont de pierre enjambe un torrent tumultueux. Les dalles sont couvertes de mousse. Le pont tremble sous tes pieds.',
       [['Traverser avec soin', 'Prudent'], ['Chercher un gue en amont', 'Exploration'], ['Sauter le torrent', 'Audace']], ['exploration'], { max_card: 30 }),
+
+    card('e10', 'La Source Sacree',
+      'Une source jaillit entre les racines d\'un chene. L\'eau brille d\'eclats dores. Les blessures des voyageurs s\'y apaisent, dit-on.',
+      [['Boire de l\'eau', 'Soin'], ['Remplir ta gourde', 'Prevoyant'], ['Mediter aupres de la source', 'Spirituel']], ['healing', 'nature'], { max_card: 30 }),
+
+    card('e11', 'L\'Herboriste Solitaire',
+      'Une vieille femme cueille des simples pres du sentier. Son regard est bienveillant. "Prends ceci, voyageur. Tu en auras besoin."',
+      [['Accepter le remede', 'Soin'], ['Demander ses conseils', 'Sagesse'], ['La remercier et continuer', 'Respect']], ['healing', 'stranger'], { max_card: 30 }),
   ],
 
   mid_game: [
