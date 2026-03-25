@@ -67,7 +67,7 @@ export function buildNarratorContext(state) {
     ragSections.danger = base.danger_context
     ragSections.biome = base.biome_context
     ragSections.calendar = getCalendarContext(run.day)
-    ragSections.promises = getPromiseContext(run.active_promises ?? [])
+    ragSections.promises = getPromiseContext(state)
 
     if (_registries.profile) {
       const { getProfileContextForLLM } = _registries.profile

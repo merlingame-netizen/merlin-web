@@ -65,7 +65,7 @@ export function checkExpiredPromises(state) {
 }
 
 export function getActivePromises(state) {
-  return (state.run.active_promises ?? []).filter(p => p.status === 'active')
+  return (state?.run?.active_promises ?? []).filter(p => p.status === 'active')
 }
 
 export function getPromiseContext(state) {
