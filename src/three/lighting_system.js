@@ -51,8 +51,9 @@ const LIGHT_PROFILES = {
 const MOODS = {
   warm:    { sunColor: 0xffcc88, ambBoost: 1.2 },
   cold:    { sunColor: 0x88aadd, ambBoost: 0.8 },
-  danger:  { sunColor: 0xcc4422, ambBoost: 0.6 },
-  sacred:  { sunColor: 0xddddff, ambBoost: 1.3 },
+  danger:  { sunColor: 0xcc4422, ambBoost: 0.5 },  // Darker, reddish
+  sacred:  { sunColor: 0xddddff, ambBoost: 1.4 },  // Brighter, ethereal
+  mystic:  { sunColor: 0x8866cc, ambBoost: 0.7 },   // Purple fog
   journey: { sunColor: 0xddbb66, ambBoost: 1.1 },
   dark:    { sunColor: 0x334466, ambBoost: 0.4 },
   festive: { sunColor: 0xffdd99, ambBoost: 1.4 },
@@ -106,6 +107,20 @@ export class LightingSystem {
     const m = MOODS[mood] ?? MOODS.neutral
     if (m.sunColor && this._sun) this._sun.color.set(m.sunColor)
     if (this._ambient) this._ambient.intensity = this._baseAmbIntensity * m.ambBoost
+
+    // Adjust scene fog based on mood
+    if (this._scene?.fog) {
+      const fogColors = {
+        danger: 0x1a0808, sacred: 0x0a0a1a, mystic: 0x0a0818,
+        warm: 0x1a1208, cold: 0x081018, dark: 0x040408,
+      }
+      if (fogColors[mood]) this._scene.fog.color.set(fogColors[mood])
+      // Danger/mystic = denser fog (closer near), sacred = clearer
+      const fogNear = mood === 'sacred' ? 30 : (mood === 'danger' || mood === 'mystic') ? 8 : 15
+      const fogFar = mood === 'sacred' ? 100 : (mood === 'danger' || mood === 'mystic') ? 50 : 80
+      this._scene.fog.near = fogNear
+      this._scene.fog.far = fogFar
+    }
   }
 
   resetMood() {
