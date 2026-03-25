@@ -1,15 +1,14 @@
 // M.E.R.L.I.N. — Game UI Controller
 // Manages all DOM interactions, renders from store state
+// Updated for faction reputation system
 
-import { ASPECTS, ASPECT_INFO, ASPECT_STATE, SOUFFLE_MAX, LIFE_ESSENCE_MAX, SEASONS, BIOMES } from '../game/constants.js'
+import { FACTIONS, FACTION_INFO, SOUFFLE_MAX, LIFE_ESSENCE_MAX, SEASONS, BIOMES } from '../game/constants.js'
 
 export class GameUI {
   constructor() {
     this._onChoiceCallback = null
     this._typewriterTimer = null
   }
-
-  // ── Public API ────────────────────────────────────────────────────────────
 
   onChoice(fn) { this._onChoiceCallback = fn }
 
@@ -36,7 +35,7 @@ export class GameUI {
       const title = document.getElementById('card-title')
       const text  = document.getElementById('card-text')
       if (title) title.textContent = '...'
-      if (text)  this._typewrite(text, 'Merlin médite...')
+      if (text)  this._typewrite(text, 'Merlin medite...')
     }
   }
 
@@ -74,12 +73,7 @@ export class GameUI {
     document.getElementById('save-screen')?.classList.add('hidden')
   }
 
-  // ── Private ───────────────────────────────────────────────────────────────
-
   _showPhase(phase) {
-    const ids = ['menu-screen', 'save-screen', 'ending-screen']
-    const gameIds = ['top-bar', 'main-area']
-
     document.getElementById('menu-screen')?.classList.toggle('hidden', phase !== 'menu')
     document.getElementById('ending-screen')?.classList.toggle('hidden', phase !== 'ending')
     document.getElementById('top-bar')?.classList.toggle('hidden', phase === 'menu' || phase === 'ending')
@@ -89,34 +83,30 @@ export class GameUI {
   _renderGame(state) {
     const { run } = state
 
-    // Day / season info
     const season = SEASONS[run.season_index % SEASONS.length]
     const biome  = BIOMES[run.biome_index % BIOMES.length]
     const dayEl = document.getElementById('day-info')
     if (dayEl) dayEl.textContent = `Jour ${run.day} — ${season} — ${biome}`
 
-    // Triade aspects
-    ASPECTS.forEach(aspect => {
-      const val = run.triade[aspect] ?? 0
-      const info = ASPECT_INFO[aspect]
-      const stateInfo = info.states[val]
-      const cls = `aspect-${aspect.toLowerCase()}`
+    // Faction reputation bars
+    FACTIONS.forEach(faction => {
+      const rep = run.factions?.[faction] ?? 50
+      const info = FACTION_INFO[faction]
 
-      const blockEl = document.querySelector(`.aspect-block[data-aspect="${aspect}"]`)
+      const blockEl = document.querySelector(`.faction-block[data-faction="${faction}"]`)
       if (!blockEl) return
 
-      blockEl.querySelector('.aspect-state').textContent = stateInfo.label
-      blockEl.style.color = info.color
+      const barFill = blockEl.querySelector('.faction-bar-fill')
+      if (barFill) {
+        barFill.style.width = `${rep}%`
+        barFill.style.backgroundColor = info.color
+      }
 
-      // Pips: BAS=-1 (left pip), EQUILIBRE=0 (center), HAUT=1 (right pip)
-      const pips = blockEl.querySelectorAll('.aspect-pip')
-      pips.forEach(p => p.classList.remove('active'))
-      if (val === -1) pips[0]?.classList.add('active')
-      if (val === 0)  pips[1]?.classList.add('active')
-      if (val === 1)  pips[2]?.classList.add('active')
+      const repLabel = blockEl.querySelector('.faction-rep')
+      if (repLabel) repLabel.textContent = rep
     })
 
-    // Souffle orbs
+    // Souffle (single orb)
     const souffleContainer = document.querySelector('.souffle-orbs')
     if (souffleContainer) {
       souffleContainer.querySelectorAll('.souffle-orb').forEach((orb, i) => {
@@ -132,11 +122,9 @@ export class GameUI {
       })
     }
 
-    // Stats
     const cardsEl = document.querySelector('[data-stat="cards"]')
     if (cardsEl) cardsEl.textContent = run.cards_played
 
-    // Current card
     if (run.current_card) {
       this._renderCard(run.current_card, run.souffle)
     }
@@ -153,21 +141,11 @@ export class GameUI {
     choicesArea.innerHTML = ''
 
     ;(card.choices ?? []).forEach((choice, i) => {
-      const isCenter = i === 1
-      const cost = isCenter ? 1 : 0
-      const canAfford = souffle >= cost
-
       const btn = document.createElement('button')
-      btn.className = `choice-btn ${isCenter ? 'center-choice' : ''}`
-      btn.disabled = !canAfford || !this._onChoiceCallback
+      btn.className = 'choice-btn'
+      btn.disabled = !this._onChoiceCallback
       btn.setAttribute('data-index', ['◁', '▽', '▷'][i])
-
-      const costLabel = cost > 0 ? `<span class="choice-cost">⟨ ${cost} Souffle ⟩</span>` : ''
-      btn.innerHTML = `<span class="choice-text">${choice.label}${costLabel}</span>`
-
-      if (choice.preview) {
-        btn.title = choice.preview
-      }
+      btn.innerHTML = `<span class="choice-text">${choice.label}</span>`
 
       btn.addEventListener('click', () => {
         if (this._onChoiceCallback) this._onChoiceCallback(i)
@@ -202,7 +180,7 @@ export class GameUI {
     }
     if (statsEl) {
       statsEl.innerHTML = `
-        <span>Cartes jouées: ${run.cards_played}</span>
+        <span>Cartes jouees: ${run.cards_played}</span>
         <span>Jour ${run.day}</span>
         <span>Souffle: ${run.souffle}/${SOUFFLE_MAX}</span>
       `
@@ -232,17 +210,15 @@ export function buildHTML() {
   document.body.innerHTML = `
     <canvas id="canvas-bg"></canvas>
 
-    <!-- Loading overlay -->
     <div id="loading-overlay">
       <div class="loading-logo">M.E.R.L.I.N.</div>
       <div class="loading-text">Connexion aux Oghams...</div>
     </div>
 
-    <!-- Menu screen -->
     <div id="menu-screen" class="hidden">
       <div class="menu-title">
         <h1>M.E.R.L.I.N.</h1>
-        <p>Le Jeu des Oghams — Édition Web</p>
+        <p>Le Jeu des Oghams — Edition Web</p>
       </div>
       <div class="menu-btn-group">
         <button class="menu-btn" id="btn-new-run">[ Nouvelle Aventure ]</button>
@@ -250,42 +226,37 @@ export function buildHTML() {
         <button class="menu-btn" id="btn-load">[ Charger ]</button>
       </div>
       <div style="font-size:0.7em;color:var(--phosphor-dim);text-align:center;max-width:300px">
-        Propulsé par Groq LLaMA 3.3-70b · Hébergé sur Vercel
+        Propulse par Groq LLaMA 3.3-70b
       </div>
     </div>
 
-    <!-- Save screen -->
     <div id="save-screen" class="hidden" style="position:fixed;inset:0;z-index:55;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:32px;background:rgba(5,12,5,0.95)">
       <div class="panel-title">[ Emplacements de Sauvegarde ]</div>
       <div class="save-slot-list" style="display:flex;flex-direction:column;gap:12px"></div>
       <button class="menu-btn save-back-btn" style="min-width:160px;font-size:0.9em">[ Retour ]</button>
     </div>
 
-    <!-- Game top bar -->
     <div id="top-bar" class="hidden">
       <span class="logo">M.E.R.L.I.N.</span>
       <span class="day-info" id="day-info">Jour 1 — Samhain</span>
       <button class="menu-btn" id="btn-save-game" style="min-width:auto;padding:4px 12px;font-size:0.8em">[ Sauvegarder ]</button>
     </div>
 
-    <!-- Main game area -->
     <div id="main-area" class="hidden" style="flex:1;display:flex;gap:12px;padding:12px;overflow:hidden">
 
-      <!-- Triade left panel -->
-      <div id="triade-panel" class="panel">
-        <div class="panel-title">Triade</div>
+      <div id="faction-panel" class="panel">
+        <div class="panel-title">Factions</div>
 
-        ${ASPECTS.map(aspect => {
-          const info = ASPECT_INFO[aspect]
+        ${FACTIONS.map(faction => {
+          const info = FACTION_INFO[faction]
           return `
-          <div class="aspect-block" data-aspect="${aspect}" style="color:${info.color}">
-            <div class="aspect-label">${aspect}</div>
-            <div class="aspect-symbol">${info.symbol}</div>
-            <div class="aspect-state">${info.states[0].label}</div>
-            <div class="aspect-bar">
-              <div class="aspect-pip"></div>
-              <div class="aspect-pip active"></div>
-              <div class="aspect-pip"></div>
+          <div class="faction-block" data-faction="${faction}" style="margin-bottom:6px">
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75em">
+              <span style="color:${info.color}">${info.symbol} ${info.label}</span>
+              <span class="faction-rep" style="color:${info.color}">50</span>
+            </div>
+            <div style="height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden">
+              <div class="faction-bar-fill" style="height:100%;width:50%;background:${info.color};transition:width 0.3s"></div>
             </div>
           </div>`
         }).join('')}
@@ -294,13 +265,12 @@ export function buildHTML() {
           <div class="souffle-label">◈ Souffle d'Ogham</div>
           <div class="souffle-orbs">
             ${Array.from({length: SOUFFLE_MAX}, (_, i) =>
-              `<div class="souffle-orb ${i < 3 ? 'filled' : ''}"></div>`
+              `<div class="souffle-orb ${i < 1 ? 'filled' : ''}"></div>`
             ).join('')}
           </div>
         </div>
       </div>
 
-      <!-- Card center zone -->
       <div id="card-zone">
         <div id="card-display" class="panel" style="width:100%;max-width:520px;padding:20px 24px">
           <div id="card-title" style="font-size:1.4em;color:var(--amber);text-align:center;margin-bottom:12px">
@@ -311,14 +281,11 @@ export function buildHTML() {
           </div>
         </div>
         <div id="choices-area" style="width:100%;max-width:520px;display:flex;flex-direction:column;gap:8px">
-          <!-- Choices injected dynamically -->
         </div>
       </div>
 
-      <!-- Right panel -->
       <div id="right-panel" class="panel">
         <div class="panel-title">Essence</div>
-
         <div>
           <div style="font-size:0.8em;color:var(--phosphor-dim);margin-bottom:6px">Vie</div>
           <div class="life-orbs">
@@ -344,7 +311,6 @@ export function buildHTML() {
       </div>
     </div>
 
-    <!-- Ending screen -->
     <div id="ending-screen" class="hidden">
       <div class="ending-type victory">— Victoire —</div>
       <div class="ending-title victory">Titre</div>

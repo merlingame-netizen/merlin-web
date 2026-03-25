@@ -1,47 +1,27 @@
 // Vercel Serverless Function — Groq LLM Proxy
 // Route: POST /api/llm
-// Body: { mode: 'narrator' | 'gm', messages: [...], context: {...} }
+// Body: { mode: 'narrator' | 'gm', system?: string, user?: string, context?: {...} }
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
 const MODELS = {
-  narrator: process.env.GROQ_MODEL_NARRATOR || 'llama-3.3-70b-versatile',
-  gm:       process.env.GROQ_MODEL_GM       || 'llama-3.1-8b-instant',
+  narrator:  process.env.GROQ_MODEL_NARRATOR || 'llama-3.3-70b-versatile',
+  gm:        process.env.GROQ_MODEL_GM       || 'llama-3.1-8b-instant',
+  scenario:  process.env.GROQ_MODEL_NARRATOR || 'llama-3.3-70b-versatile',
 }
 
 const PARAMS = {
-  narrator: { temperature: 0.70, max_tokens: 220, top_p: 0.90 },
-  gm:       { temperature: 0.15, max_tokens: 120, top_p: 0.80 },
+  narrator:  { temperature: 0.75, max_tokens: 400, top_p: 0.90 },
+  gm:        { temperature: 0.15, max_tokens: 120, top_p: 0.80 },
+  scenario:  { temperature: 0.80, max_tokens: 2000, top_p: 0.90 },
 }
 
-// System prompts
-const SYSTEM_NARRATOR = `Tu es Merlin le druide — narrateur mystique d'un jeu de cartes celtique.
-Tu parles UNIQUEMENT en français. Ton style: poétique, énigmatique, archaïque, avec des métaphores druidiques.
-Tu génères une carte narrative avec: un titre court, un texte d'ambiance (2-3 phrases), et 3 choix distincts.
-Format JSON STRICT:
-{
-  "title": "Titre bref et évocateur",
-  "text": "Description narrative de la situation (2-3 phrases, style celtique)",
-  "choices": [
-    {"label": "Option gauche (gratuite)", "preview": "Conséquence probable courte"},
-    {"label": "Option centre (coûte 1 Souffle)", "preview": "Conséquence probable courte"},
-    {"label": "Option droite (gratuite)", "preview": "Conséquence probable courte"}
-  ]
-}
-Ne génère RIEN d'autre que ce JSON. Pas de markdown. Pas d'explication.`
+// Legacy fallback system prompts (used if client doesn't send custom prompts)
+const SYSTEM_NARRATOR = `Tu es Merlin l'Enchanteur, druide ancestral. Génère une carte narrative en JSON.
+{"title":"...","text":"...","choices":[{"label":"...","preview":"..."},{"label":"...","preview":"..."},{"label":"...","preview":"..."}]}`
 
-const SYSTEM_GM = `Tu es le Maître du Jeu d'un jeu de cartes celtique. Tu génères les effets mécaniques d'une carte.
-Effets disponibles: SHIFT_ASPECT:Corps:1, SHIFT_ASPECT:Ame:-1, SHIFT_ASPECT:Monde:1,
-ADD_SOUFFLE:1, USE_SOUFFLE:1, DAMAGE_LIFE:1, HEAL_LIFE:1, ADD_KARMA:10, ADD_TENSION:15,
-ADD_GAUGE:Vigueur:10, REMOVE_GAUGE:Esprit:10, MODIFY_BOND:5, ADD_ESSENCES:2
-Aspects: Corps (physique), Ame (spirituel), Monde (social). États: -1=bas, 0=équilibre, +1=haut.
-Format JSON STRICT:
-{
-  "effects_0": ["EFFECT:arg", ...],
-  "effects_1": ["EFFECT:arg", ...],
-  "effects_2": ["EFFECT:arg", ...]
-}
-3-4 effets par option max. Option 1 (centre) est plus puissante. Ne génère RIEN d'autre que ce JSON.`
+const SYSTEM_GM = `Tu es le Maître du Jeu. Génère les effets mécaniques en JSON.
+{"effects_0":["EFFECT:arg"],"effects_1":["EFFECT:arg"],"effects_2":["EFFECT:arg"]}`
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
@@ -60,13 +40,14 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'GROQ_API_KEY not configured' })
   }
 
-  const { mode = 'narrator', context = {} } = req.body || {}
-  if (!['narrator', 'gm'].includes(mode)) {
-    return res.status(400).json({ error: 'mode must be narrator or gm' })
+  const { mode = 'narrator', system, user, context = {} } = req.body || {}
+  if (!['narrator', 'gm', 'scenario'].includes(mode)) {
+    return res.status(400).json({ error: 'mode must be narrator, gm, or scenario' })
   }
 
-  const systemPrompt = mode === 'narrator' ? SYSTEM_NARRATOR : SYSTEM_GM
-  const userPrompt = _buildUserPrompt(mode, context)
+  // Use client-provided prompts if available, else legacy fallback
+  const systemPrompt = system || (mode === 'narrator' ? SYSTEM_NARRATOR : SYSTEM_GM)
+  const userPrompt = user || _buildLegacyUserPrompt(mode, context)
 
   try {
     const response = await fetch(GROQ_API_URL, {
@@ -110,28 +91,19 @@ export default async function handler(req, res) {
   }
 }
 
-function _buildUserPrompt(mode, ctx) {
-  const { triade = {}, souffle = 3, day = 1, season = 'Samhain', biome = 'Forêt de Brocéliande',
-          tags = [], card_text = '', choices = [] } = ctx
+function _buildLegacyUserPrompt(mode, ctx) {
+  const {
+    factions = {}, vie = 100, biome = 'Brocéliande',
+    confiance_merlin = 'T0', ogham_actif = null,
+    tags = [], card_text = '', choices = [],
+  } = ctx
+
+  const factionDesc = Object.entries(factions)
+    .map(([k, v]) => `${k}:${v}`)
+    .join(', ')
 
   if (mode === 'narrator') {
-    const aspectDesc = Object.entries(triade)
-      .map(([k, v]) => `${k}:${v < 0 ? 'BAS' : v > 0 ? 'HAUT' : 'EQUILIBRE'}`)
-      .join(', ')
-    return `État du joueur: Triade=[${aspectDesc}], Souffle=${souffle}/7, Jour ${day}, Saison ${season}, Biome: ${biome}.
-Tags actifs: ${tags.length ? tags.join(', ') : 'aucun'}.
-Génère une carte narrative cohérente avec cet état. Si un aspect est au BAS ou HAUT, la carte doit y faire écho.`
+    return `État: Factions=[${factionDesc || 'Druides:50,Guerriers:50,Bardes:50,Marchands:50,Ombres:50'}], Vie=${vie}/100, Biome=${biome}, Confiance=${confiance_merlin}${ogham_actif ? `, Ogham=${ogham_actif}` : ''}. Tags: ${tags.join(', ') || 'aucun'}. Génère une carte.`
   }
-
-  if (mode === 'gm') {
-    const aspectDesc = Object.entries(triade)
-      .map(([k, v]) => `${k}:${v < 0 ? 'BAS' : v > 0 ? 'HAUT' : 'EQUILIBRE'}`)
-      .join(', ')
-    return `Carte: "${card_text}"
-Choix: ${choices.map((c, i) => `[${i}] ${c.label}`).join(' | ')}
-État: Triade=[${aspectDesc}], Souffle=${souffle}/7, Jour ${day}
-Génère les effets mécaniques pour chaque option. Équilibre les risques. Option 1 coûte 1 Souffle.`
-  }
-
-  return ''
+  return `Carte: "${card_text}". Choix: ${choices.map((c, i) => `[${i}] ${c.label}`).join(' | ')}. État: Factions=[${factionDesc || 'Druides:50,Guerriers:50,Bardes:50,Marchands:50,Ombres:50'}], Vie=${vie}/100, Confiance=${confiance_merlin}. Génère les effets.`
 }

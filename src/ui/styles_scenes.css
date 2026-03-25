@@ -1,0 +1,517 @@
+/* M.E.R.L.I.N. — Scene Styles */
+/* CRT Terminal Druido-Tech aesthetic for all 7 scenes */
+
+/* ── Skip Button (all scenes) ────────────────────────────────────────── */
+.skip-btn {
+  position: fixed; bottom: 24px; right: 24px; z-index: 100;
+  background: rgba(10, 26, 10, 0.8);
+  border: 1px solid var(--phosphor);
+  color: var(--phosphor);
+  font-family: var(--font);
+  font-size: 0.85em;
+  padding: 8px 18px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+.skip-btn:hover { opacity: 1; }
+
+/* ── IntroCeltOS ──────────────────────────────────────────────────────── */
+.scene-intro-celtos {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(5, 12, 5, 0.97);
+}
+
+.celtos-terminal {
+  max-width: 520px; width: 90%;
+  font-family: var(--font); color: var(--phosphor);
+  font-size: 0.85em; line-height: 1.6;
+}
+
+.celtos-lines {
+  max-height: 70vh; overflow-y: auto;
+}
+
+.celtos-line {
+  animation: fadeIn 0.15s ease-in;
+}
+
+.celtos-cursor {
+  animation: blink 0.8s step-end infinite;
+  display: inline;
+}
+
+/* ── Personality Quiz ─────────────────────────────────────────────────── */
+.scene-quiz {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: rgba(5, 12, 5, 0.97);
+  padding: 32px; gap: 24px;
+}
+
+.quiz-progress {
+  font-family: var(--font); color: var(--phosphor-dim);
+  font-size: 0.8em; letter-spacing: 2px;
+}
+
+.quiz-question {
+  font-family: var(--font); color: var(--amber);
+  font-size: 1.15em; text-align: center;
+  max-width: 480px; line-height: 1.6;
+}
+
+.quiz-choices {
+  display: flex; flex-direction: column;
+  gap: 10px; max-width: 400px; width: 100%;
+}
+
+.quiz-choice {
+  font-family: var(--font); font-size: 0.95em;
+  color: var(--phosphor); background: rgba(10, 26, 10, 0.8);
+  border: 1px solid var(--phosphor-dim); padding: 12px 16px;
+  cursor: pointer; text-align: left; transition: all 0.15s;
+}
+
+.quiz-choice:hover {
+  border-color: var(--phosphor); background: rgba(20, 50, 20, 0.8);
+  text-shadow: 0 0 8px var(--phosphor);
+}
+
+.quiz-result {
+  text-align: center;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 16px;
+}
+
+.quiz-result-title {
+  font-family: var(--font); color: var(--amber);
+  font-size: 1.5em; text-shadow: 0 0 12px var(--amber);
+}
+
+.quiz-result-desc {
+  font-family: var(--font); color: var(--phosphor);
+  font-size: 1em; max-width: 360px; line-height: 1.5;
+}
+
+/* ── Rencontre Merlin ─────────────────────────────────────────────────── */
+.scene-rencontre {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: rgba(5, 12, 5, 0.97);
+  padding: 32px; gap: 24px;
+}
+
+.rencontre-portrait {
+  text-align: center;
+}
+
+.merlin-ascii {
+  font-size: 4em; margin-bottom: 8px;
+  filter: drop-shadow(0 0 12px var(--amber));
+}
+
+.merlin-name {
+  font-family: var(--font); color: var(--amber);
+  font-size: 1.2em; letter-spacing: 3px;
+}
+
+.rencontre-dialogue {
+  max-width: 500px; width: 90%;
+  display: flex; flex-direction: column;
+  gap: 16px;
+}
+
+.dialogue-text {
+  font-family: var(--font); color: var(--phosphor);
+  font-size: 1em; line-height: 1.7; min-height: 60px;
+}
+
+.dialogue-choices {
+  display: flex; flex-direction: column;
+  gap: 8px;
+}
+
+.dialogue-choice, .dialogue-next {
+  font-size: 0.9em !important;
+}
+
+/* ── Hub Antre ────────────────────────────────────────────────────────── */
+.scene-hub {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; flex-direction: column;
+  background: rgba(5, 12, 5, 0.97);
+  padding: 16px; overflow-y: auto;
+}
+
+.hub-header {
+  display: flex; align-items: baseline;
+  gap: 16px; padding: 8px 0 16px;
+  border-bottom: 1px solid var(--phosphor-dim);
+  margin-bottom: 16px;
+}
+
+.hub-logo {
+  font-family: var(--font); color: var(--amber);
+  font-size: 1.4em; letter-spacing: 3px;
+}
+
+.hub-subtitle {
+  font-family: var(--font); color: var(--phosphor-dim);
+  font-size: 0.9em;
+}
+
+.hub-content {
+  display: flex; gap: 16px; flex: 1;
+  min-height: 0;
+}
+
+.hub-left {
+  flex: 2; overflow-y: auto;
+}
+
+.hub-center {
+  flex: 1; display: flex;
+  flex-direction: column; gap: 12px;
+}
+
+.hub-right {
+  display: flex; flex-direction: column;
+  gap: 10px; justify-content: center;
+  min-width: 180px;
+}
+
+.biome-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px; padding: 8px 0;
+}
+
+.biome-card {
+  font-family: var(--font); padding: 10px 12px;
+  border: 1px solid var(--phosphor-dim);
+  background: rgba(10, 26, 10, 0.6);
+  cursor: pointer; transition: all 0.15s;
+}
+
+.biome-card.selected {
+  border-width: 2px;
+  background: rgba(20, 50, 20, 0.8);
+  box-shadow: 0 0 10px rgba(51, 255, 102, 0.15);
+}
+
+.biome-card.locked {
+  opacity: 0.4; cursor: not-allowed;
+}
+
+.biome-name {
+  color: var(--phosphor); font-size: 0.85em;
+  margin-bottom: 4px;
+}
+
+.biome-info {
+  color: var(--phosphor-dim); font-size: 0.7em;
+}
+
+.bestiole-info {
+  display: flex; align-items: center;
+  gap: 12px; font-family: var(--font);
+  color: var(--phosphor); font-size: 0.85em;
+}
+
+.bestiole-sprite {
+  font-size: 2em;
+  filter: drop-shadow(0 0 8px var(--phosphor));
+}
+
+.hub-depart {
+  font-size: 1.1em !important;
+  padding: 12px !important;
+  color: var(--amber) !important;
+  border-color: var(--amber) !important;
+}
+
+.hub-depart:hover:not(:disabled) {
+  background: rgba(255, 190, 51, 0.15) !important;
+  text-shadow: 0 0 8px var(--amber);
+}
+
+/* ── Transition Biome ─────────────────────────────────────────────────── */
+.scene-transition {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 1.5s ease;
+}
+
+.transition-overlay {
+  text-align: center;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 16px;
+}
+
+.transition-text {
+  font-family: var(--font); color: var(--phosphor);
+  font-size: 1.1em; animation: fadeIn 0.5s;
+}
+
+.transition-biome-name {
+  font-family: var(--font); color: var(--amber);
+  font-size: 2em; letter-spacing: 4px;
+  opacity: 0; transition: opacity 0.8s;
+  text-shadow: 0 0 20px var(--amber);
+}
+
+.transition-biome-name.reveal {
+  opacity: 1;
+}
+
+.transition-atmosphere {
+  font-family: var(--font); color: var(--phosphor-dim);
+  font-size: 0.8em; font-style: italic;
+  max-width: 400px;
+}
+
+/* ── Game Scene ───────────────────────────────────────────────────────── */
+.scene-game {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; flex-direction: column;
+}
+
+.game-top-bar {
+  display: flex; align-items: center;
+  gap: 12px; padding: 8px 16px;
+  border-bottom: 1px solid rgba(51, 255, 102, 0.15);
+  background: rgba(5, 12, 5, 0.8);
+}
+
+.game-main {
+  flex: 1; display: flex;
+  gap: 12px; padding: 12px;
+  overflow: hidden;
+}
+
+.game-triade {
+  min-width: 140px; max-width: 160px;
+  display: flex; flex-direction: column;
+  gap: 8px;
+}
+
+.game-card-zone {
+  flex: 1; display: flex;
+  flex-direction: column;
+  align-items: center; gap: 12px;
+  justify-content: center;
+}
+
+.game-card {
+  width: 100%; max-width: 520px;
+  padding: 20px 24px;
+}
+
+.game-choices {
+  width: 100%; max-width: 520px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+
+.game-right {
+  min-width: 130px; max-width: 150px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+.souffle-block { margin-top: auto; }
+.stats-block { margin-top: 12px; }
+
+.sub-label {
+  font-size: 0.8em; color: var(--phosphor-dim);
+  margin-bottom: 6px;
+}
+
+.btn-small {
+  min-width: auto !important;
+  padding: 4px 12px !important;
+  font-size: 0.8em !important;
+}
+
+/* ── Ending Screen ────────────────────────────────────────────────────── */
+.scene-ending {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: rgba(5, 12, 5, 0.97);
+  padding: 32px; gap: 16px;
+}
+
+.ending-actions {
+  display: flex; gap: 12px; margin-top: 12px;
+}
+
+/* ── Menu Screen ──────────────────────────────────────────────────────── */
+.scene-menu {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 24px;
+}
+
+.menu-footer {
+  font-size: 0.7em; color: var(--phosphor-dim);
+  text-align: center; max-width: 300px;
+}
+
+/* ── Shared animations ────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Minigame Overlay ────────────────────────────────────────────────── */
+.minigame-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(5, 12, 5, 0.85);
+  animation: fadeIn 0.2s ease-in;
+  cursor: pointer;
+}
+
+.minigame-card {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 12px;
+  padding: 32px 48px;
+  border: 2px solid var(--phosphor-dim);
+  background: rgba(10, 26, 10, 0.95);
+}
+
+.minigame-icon { font-size: 3em; }
+.minigame-name {
+  font-family: var(--font); color: var(--amber);
+  font-size: 1.2em; letter-spacing: 2px;
+}
+
+.minigame-roll {
+  font-family: var(--font); font-size: 2em;
+  display: flex; align-items: baseline; gap: 4px;
+}
+
+.roll-value { color: var(--phosphor); }
+.roll-sep { color: var(--phosphor-dim); font-size: 0.7em; }
+.roll-threshold { color: var(--phosphor-dim); font-size: 0.8em; }
+
+.minigame-result {
+  font-family: var(--font); font-size: 1.1em;
+  letter-spacing: 1px; padding: 4px 16px;
+  border: 1px solid;
+}
+
+.minigame-result.success {
+  color: var(--phosphor); border-color: var(--phosphor);
+  text-shadow: 0 0 8px var(--phosphor);
+}
+
+.minigame-result.fail {
+  color: #ff6b6b; border-color: #ff6b6b;
+  text-shadow: 0 0 8px #ff6b6b;
+}
+
+.minigame-overlay.success .minigame-card { border-color: var(--phosphor); }
+.minigame-overlay.fail .minigame-card { border-color: #ff6b6b; }
+
+/* ── Bestiole Wheel ──────────────────────────────────────────────────── */
+.bestiole-wheel {
+  position: fixed; inset: 0; z-index: 250;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.bestiole-wheel.hidden { display: none; }
+
+.wheel-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(5, 12, 5, 0.7);
+}
+
+.wheel-container {
+  position: relative;
+  width: 320px; height: 320px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.wheel-center {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 4px; z-index: 1;
+}
+
+.wheel-bestiole { font-size: 2.5em; }
+.wheel-mood {
+  font-family: var(--font); color: var(--phosphor-dim);
+  font-size: 0.75em;
+}
+
+.wheel-ring {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.wheel-slot {
+  position: absolute;
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--phosphor-dim);
+  background: rgba(10, 26, 10, 0.9);
+  font-family: var(--font); font-size: 1.2em;
+  color: var(--phosphor); transition: all 0.15s;
+}
+
+.wheel-slot.locked { opacity: 0.25; }
+.wheel-slot.usable {
+  cursor: pointer; border-color: var(--phosphor);
+}
+.wheel-slot.usable:hover {
+  background: rgba(20, 50, 20, 0.9);
+  box-shadow: 0 0 12px rgba(51, 255, 102, 0.3);
+  text-shadow: 0 0 8px var(--phosphor);
+}
+
+.wheel-symbol { font-size: 1.1em; }
+.wheel-cd {
+  position: absolute; top: -4px; right: -4px;
+  background: var(--amber); color: #000;
+  font-size: 0.55em; width: 14px; height: 14px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+}
+
+.wheel-close {
+  position: absolute; top: -20px; right: -20px;
+  background: none; border: 1px solid var(--phosphor-dim);
+  color: var(--phosphor); font-family: var(--font);
+  font-size: 0.9em; cursor: pointer; padding: 4px 8px;
+}
+
+/* ── Bestiole Toggle Button (in game scene) ──────────────────────────── */
+.btn-bestiole {
+  background: none; border: 1px solid var(--amber);
+  color: var(--amber); font-family: var(--font);
+  font-size: 0.85em; padding: 4px 10px; cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-bestiole:hover {
+  background: rgba(255, 190, 51, 0.15);
+  text-shadow: 0 0 8px var(--amber);
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .hub-content { flex-direction: column; }
+  .hub-left, .hub-center, .hub-right { max-width: 100%; }
+  .biome-grid { grid-template-columns: 1fr; }
+
+  .game-main { flex-direction: column; }
+  .game-triade, .game-right {
+    flex-direction: row; max-width: 100%;
+    min-width: auto; overflow-x: auto; gap: 12px;
+  }
+  .game-triade .aspect-block { min-width: 80px; }
+  .souffle-block, .stats-block { margin-top: 0; }
+}

@@ -1,0 +1,681 @@
+// M.E.R.L.I.N. — 3D Cinematic Game Scene
+// v4: Full 3D encounter flow — eyelid iris, event assets, 3D card with raycasted choices
+
+import * as THREE from 'three'
+
+import { WorldScene } from '../three/world_scene.js'
+import { PathCamera } from '../three/path_camera.js'
+import { EncounterSpawner } from '../three/encounter_spawner.js'
+import { EffectVisuals } from '../three/effect_visuals.js'
+import { Card3D } from '../three/card_3d.js'
+import { playEyelidOpen, playEyelidClose } from '../three/eyelid_effect.js'
+import { spawnEventAsset, dismissEventAsset, matchAsset } from '../three/event_assets.js'
+import { spawnEventProps, dismissEventProps, getEventType } from '../three/event_props.js'
+import { updateTweens } from '../three/tween_engine.js'
+import { startBiomeDrone, stopBiomeDrone, playEncounterSpawn, playEncounterDismiss } from '../audio/spatial_audio.js'
+import { SFX } from '../audio/sfx_manager.js'
+import { getIntroText, getSeasonName } from '../data/intro_texts.js'
+import { getScenarioTitle, getScenarioIntro } from '../llm/scenario_generator.js'
+import { getLLMStatus, onStatusChange, prewarmMultiple } from '../llm/prewarm.js'
+import { getRealPeriod, getRealSeason } from '../three/lighting_system.js'
+import { FACTIONS, FACTION_INFO } from '../game/constants.js'
+import { getState } from '../game/store.js'
+
+// Map card content to scene mood
+function _cardToMood(card) {
+  const tags = card.tags || []
+  const text = (card.text || '').toLowerCase()
+  if (tags.includes('danger') || text.includes('menace') || text.includes('combat') || text.includes('attaque')) return 'danger'
+  if (text.includes('nuit') || text.includes('obscur') || text.includes('sombre') || text.includes('tenebres') || text.includes('ténèbres')) return 'dark'
+  if (tags.includes('sacred') || text.includes('sacré') || text.includes('rituel') || text.includes('nemeton')) return 'sacred'
+  if (text.includes('chemin') || text.includes('sentier') || text.includes('route') || text.includes('croisee') || text.includes('croisée')) return 'journey'
+  if (text.includes('fete') || text.includes('fête') || text.includes('joie') || text.includes('rire') || text.includes('musique') || text.includes('banquet')) return 'festive'
+  if (text.includes('froid') || text.includes('glace') || text.includes('hiver') || text.includes('brume')) return 'cold'
+  if (tags.includes('recovery') || text.includes('repos') || text.includes('guéri') || text.includes('chaleur')) return 'warm'
+  return 'neutral'
+}
+
+function _extractCreatureFromCard(card) {
+  const text = (card.text || '').toLowerCase()
+  const creatures = ['korrigan', 'loup', 'corbeau', 'esprit', 'sirène', 'géant', 'tuatha']
+  for (const c of creatures) {
+    if (text.includes(c)) return c === 'sirène' ? 'sirene' : c === 'géant' ? 'geant' : c
+  }
+  return null
+}
+
+export class GameScene3D {
+  constructor(onChoice, onSave, onQuit, onBestiole, renderManager) {
+    this._onChoice = onChoice
+    this._onSave = onSave
+    this._onQuit = onQuit
+    this._onBestiole = onBestiole
+    this._renderManager = renderManager
+    this._onEncounterReached = null
+
+    this._world = new WorldScene()
+    this._pathCamera = null
+    this._spawner = null
+    this._effects = null
+    this._el = null
+
+    this._encounterActive = false
+    this._cardLoading = false
+    this._biomeKey = null
+    this._started = false
+    this._souffleActive = false
+    this._llmUnsub = null
+    this._introCleanup = null
+    this._card3d = null
+    this._eventProps = null // current encounter props (legacy event_props)
+    this._currentAsset = null // current encounter asset (event_assets)
+    this._encounterCard = null // 3D card for encounters
+    this._introCard = null // 3D card for intro
+    this._onWorldInteract = null
+    this._cleanupRaycast = null
+    this._scenarioTitle = null
+  }
+
+  setOnEncounterReached(fn) {
+    this._onEncounterReached = fn
+  }
+
+  setOnWorldInteract(fn) {
+    this._onWorldInteract = fn
+  }
+
+  mount(container) {
+    this._el = document.createElement('div')
+    this._el.className = 'scene-game3d'
+    this._el.innerHTML = `
+      <div class="g3d-hud-top">
+        <div class="g3d-factions" id="g3d-factions"></div>
+        <div class="g3d-info" id="g3d-info"></div>
+      </div>
+      <div class="g3d-llm-panel" id="g3d-llm-panel">
+        <div class="g3d-brain" id="g3d-brain-narrator">
+          <span class="brain-dot narrator-dot"></span>
+          <span class="brain-label">Narrateur</span>
+        </div>
+        <div class="g3d-brain" id="g3d-brain-gm">
+          <span class="brain-dot gm-dot"></span>
+          <span class="brain-label">Game Master</span>
+        </div>
+      </div>
+      <div class="g3d-center" id="g3d-center"></div>
+      <div class="g3d-sidebar">
+        <button class="g3d-btn" id="g3d-save">[ Sauv ]</button>
+        <button class="g3d-btn" id="g3d-quit">[ Hub ]</button>
+        <!-- <button class="g3d-btn" id="g3d-bestiole">[ Bestiole ]</button> -->
+      </div>
+    `
+    container.appendChild(this._el)
+
+    this._el.querySelector('#g3d-save')?.addEventListener('click', () => this._onSave())
+    this._el.querySelector('#g3d-quit')?.addEventListener('click', () => this._onQuit())
+    // this._el.querySelector('#g3d-bestiole')?.addEventListener('click', () => this._onBestiole())
+
+    // LLM status listener
+    this._updateLLMPanel(getLLMStatus())
+    this._llmUnsub = onStatusChange((s) => this._updateLLMPanel(s))
+  }
+
+  unmount() {
+    this._pathCamera?.dispose()
+    this._introCleanup?.()
+    this._cleanupRaycast?.()
+    this._card3d?.dismiss()
+    this._encounterCard?.dismiss()
+    this._introCard?.dismiss()
+    this._interactables?.clear()
+    // Remove canvas pointer handler
+    const canvas = this._renderManager._renderer?.domElement
+    if (canvas && this._pointerHandler) {
+      canvas.removeEventListener('pointerdown', this._pointerHandler)
+      this._pointerHandler = null
+    }
+    this._el?.remove()
+    this._el = null
+    this._renderManager.setPostProcessing(false)
+    this._renderManager.pause()
+    this._started = false
+    this._llmUnsub?.()
+    stopBiomeDrone()
+  }
+
+  showCardLoading(loading) {
+    this._cardLoading = loading
+    const center = this._el?.querySelector('#g3d-center')
+    if (center && !this._started) return
+    if (center) {
+      center.innerHTML = loading
+        ? '<div class="g3d-loading">Merlin medite...</div>'
+        : ''
+    }
+  }
+
+  onEnter(state) {
+    const biomeKey = state.run?.biome_key ?? 'broceliande'
+    const seasonIndex = state.run?.season_index ?? 0
+    const day = state.run?.day ?? 1
+
+    // Store scenario title if available
+    const scenarioTitle = getScenarioTitle()
+    if (scenarioTitle) {
+      this._scenarioTitle = scenarioTitle
+    }
+
+    // Create PathCamera — encounter callback directly triggers card draw (no PlotOrb)
+    this._pathCamera = new PathCamera(this._world.getCamera(), (encounterIdx) => {
+      console.log(`[Game3D] Encounter ${encounterIdx}/25 reached — drawing card`)
+      this._onEncounterReached?.(encounterIdx)
+    })
+    this._pathCamera.setHeightFunction((x, z) => this._world.heightAt(x, z))
+    this._pathCamera.configure(biomeKey)
+
+    // Create world with path curve
+    const pathCurve = this._pathCamera.getPath()
+    if (biomeKey !== this._biomeKey) {
+      this._biomeKey = biomeKey
+      this._world.create(biomeKey, pathCurve)
+    }
+
+    // Apply time of day
+    const now = new Date()
+    const hour = now.getHours() + now.getMinutes() / 60
+    this._world.setTimeOfDay(hour, seasonIndex)
+
+    // Night blend for post-processing
+    const sky = this._world.getSky()
+    if (sky && this._renderManager._postProcessing) {
+      this._renderManager._postProcessing.setNightBlend(sky.getNightBlend())
+    }
+
+    // Encounter system
+    this._spawner = new EncounterSpawner(this._world.getScene())
+    this._effects = new EffectVisuals(this._world.getCamera(), this._world.getScene())
+
+    // 3D Card system (legacy single-instance for intro)
+    this._card3d = new Card3D(this._world.getScene())
+
+    // Interactive world objects — disabled: assets in scene are the interactables
+    this._interactables = null
+
+    // Canvas pointer handler — disabled (no separate interactable objects)
+    this._pointerHandler = null
+
+    // Approaching callback: spawn card 3D ahead before stopping
+    this._pathCamera.setOnApproaching((idx, pointAhead) => {
+      // Pre-spawn card mesh face-down ahead on path
+      if (this._card3d) {
+        this._card3d.spawn(pointAhead, { title: '...', text: '', choices: [], _faction: 'druides' })
+      }
+    })
+
+    this._encounterActive = false
+    this._started = false
+
+    // Activate 3D rendering with post-processing
+    this._renderManager.setPostProcessing(true)
+    this._renderManager.setActiveScene(
+      this._world.getScene(),
+      this._world.getCamera(),
+      (dt, elapsed) => this._update(dt, elapsed)
+    )
+    this._renderManager.resume()
+
+    // Show intro with eyelid iris + 3D parchment card
+    this._showGameIntro(biomeKey, seasonIndex, day)
+
+    this.render(state)
+  }
+
+  /** 3D Game Intro: eyelid iris open, parchment card drops, "Entrer" button */
+  async _showGameIntro(biomeKey, seasonIndex, day) {
+    const center = this._el?.querySelector('#g3d-center')
+    if (!center) return
+
+    // 1. Iris opens (circular black -> reveals scene)
+    await playEyelidOpen(2000)
+
+    // 2. Get scenario intro text (from LLM or fallback)
+    const scenarioIntro = getScenarioIntro()
+    const introData = getIntroText(biomeKey, seasonIndex)
+    const introText = scenarioIntro || (Array.isArray(introData) ? introData.join(' ') : String(introData))
+    const scenarioTitle = this._scenarioTitle || 'Broceliande'
+
+    // 3. Spawn a PARCHMENT card in 3D (drops from above)
+    const cam = this._world.getCamera()
+    const dir = new THREE.Vector3()
+    cam.getWorldDirection(dir)
+    const cardPos = cam.position.clone().add(dir.multiplyScalar(2.5))
+    cardPos.y = cam.position.y - 0.1
+
+    const introCardData = {
+      title: scenarioTitle,
+      text: introText,
+      choices: [],
+      _faction: 'druides',
+      _style: 'parchment',
+    }
+
+    this._introCard = new Card3D(this._world.getScene(), cam, {
+      position: cardPos,
+      card: introCardData,
+      parchment: true,
+    })
+
+    // Card drops from sky with bounce
+    if (this._introCard.group) {
+      SFX.cardDraw()
+      await this._introCard.dropFromSky(cam.position)
+      SFX.cardReveal()
+
+      // Text writes on page 1
+      await this._introCard.animateText(introCardData, 80)
+    }
+
+    // Prewarm cards in background
+    const state = getState()
+    prewarmMultiple(state, 5).catch(e => console.warn('[Intro] Prewarm failed:', e?.message))
+
+    // 4. Page-turning loop + final "Enter" button
+    const totalPages = this._introCard?.pageCount || 1
+    const showIntroButton = (isLast) => {
+      const label = isLast ? 'Entrer dans la for\u00eat \u25B6' : 'Tourner la page \u25B6'
+      const btnClass = isLast ? 'g3d-intro-go' : 'g3d-intro-flip'
+      center.innerHTML = `
+        <div class="g3d-intro-actions" style="position:fixed;bottom:20px;left:0;right:0;z-index:50;display:flex;justify-content:center;pointer-events:auto">
+          <button class="g3d-intro-btn ${btnClass}" style="pointer-events:auto;cursor:pointer">${label}</button>
+        </div>
+      `
+    }
+
+    // Show first button
+    showIntroButton(totalPages <= 1)
+
+    // Wait for user to page through all pages then enter
+    await new Promise(resolve => {
+      const handleClick = async () => {
+        const card = this._introCard
+        if (!card) { resolve(); return }
+
+        try { SFX.click() } catch (e) { /* ignore */ }
+
+        if (!card.isLastPage) {
+          // Flip to next page
+          center.innerHTML = '' // hide button during flip
+          await card.nextPage()
+          try { SFX.cardReveal() } catch (e) { /* ignore */ }
+          showIntroButton(card.isLastPage)
+          // Re-attach listener
+          center.querySelector('.g3d-intro-btn')?.addEventListener('click', handleClick, { once: true })
+        } else {
+          // Last page — enter the forest
+          try { SFX.confirm() } catch (e) { /* ignore */ }
+          try { SFX.transitionWhoosh() } catch (e) { /* ignore */ }
+          if (card.flipOut) card.flipOut()
+          else if (card.dismiss) card.dismiss()
+          this._introCard = null
+          center.innerHTML = ''
+          resolve()
+        }
+      }
+      center.querySelector('.g3d-intro-btn')?.addEventListener('click', handleClick, { once: true })
+    })
+
+    // 5. Start walking
+    this._started = true
+    this._pathCamera.startWalking()
+    this._introCleanup = null
+  }
+
+  /** Update LLM dual-brain status panel */
+  _updateLLMPanel(status) {
+    const narratorDot = this._el?.querySelector('.narrator-dot')
+    const gmDot = this._el?.querySelector('.gm-dot')
+    if (!narratorDot || !gmDot) return
+
+    const dotClass = status === 'ok' ? 'brain-ok' : (status === 'error' ? 'brain-error' : 'brain-connecting')
+    narratorDot.className = `brain-dot narrator-dot ${dotClass}`
+    gmDot.className = `brain-dot gm-dot ${dotClass}`
+  }
+
+  render(state) {
+    if (!this._el) return
+    const run = state.run
+
+    // Faction reputation HUD
+    const factionsEl = this._el.querySelector('#g3d-factions')
+    if (factionsEl) {
+      factionsEl.innerHTML = FACTIONS.map(f => {
+        const rep = run.factions?.[f] ?? 50
+        const info = FACTION_INFO[f]
+        const barW = Math.max(2, rep)
+        return `<span class="g3d-faction-pip" style="color:${info.color}" title="${info.label}: ${rep}">${info.symbol}<span class="g3d-faction-bar" style="width:${barW}%;background:${info.color}"></span></span>`
+      }).join('')
+    }
+
+    // Info bar with real period/season
+    const infoEl = this._el.querySelector('#g3d-info')
+    if (infoEl) {
+      const cardsInfo = `Carte ${run.cards_played ?? 0}/25`
+      const period = getRealPeriod()
+      const season = getRealSeason()
+      infoEl.innerHTML = `
+        <span style="color:#ffbe33">Jour ${run.day ?? 1} \u00B7 ${cardsInfo}</span>
+        <span class="g3d-period-badge" style="color:#aaddaa;margin-left:8px;font-size:0.85em">${season} \u2014 ${period}</span>
+      `
+    }
+
+    // Update period badge if it exists elsewhere
+    const badge = this._el?.querySelector('.g3d-period-badge, #g3d-period')
+    if (badge) {
+      const period = getRealPeriod()
+      const season = getRealSeason()
+      badge.textContent = `${season} \u2014 ${period}`
+    }
+
+    // Store scenario title if available
+    const scenarioData = state.run?.scenario
+    if (scenarioData?.title) {
+      this._scenarioTitle = scenarioData.title
+    }
+
+    // Show encounter if card present
+    const card = run.current_card
+    if (card && !this._encounterActive) {
+      this._showEncounter(card)
+    }
+  }
+
+  _update(dt, elapsed) {
+    this._pathCamera?.update(dt)
+    this._world?.update(dt, elapsed)
+    this._effects?.update(dt)
+    this._card3d?.update(elapsed)
+    this._encounterCard?.update(elapsed)
+    this._introCard?.update(elapsed)
+    this._interactables?.update(elapsed, this._world?.getCamera()?.position)
+    updateTweens()
+  }
+
+  async _showEncounter(card) {
+    this._encounterActive = true
+
+    const mood = _cardToMood(card)
+    this._world.setMood(mood)
+
+    // 1. Get camera position for asset and card placement
+    const camPos = this._pathCamera?.getPosition() ?? this._world.getCamera().position
+    const forward = this._pathCamera?.getForward()
+    const scene = this._world.getScene()
+    const heightFn = (x, z) => this._world.heightAt(x, z)
+
+    // 2. Spawn contextual 3D asset — vary left/center/right of path
+    const placements = ['left', 'center', 'right']
+    const placement = placements[Math.floor(Math.random() * 3)]
+    const cam = this._pathCamera?.getCamera() ?? this._world.getCamera()
+    const camRef = cam.position.clone()
+    const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion).normalize()
+    fwd.y = 0
+    fwd.normalize()
+    const rightVec = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize()
+
+    let assetOffset
+    switch (placement) {
+      case 'left':
+        assetOffset = fwd.clone().multiplyScalar(5).add(rightVec.clone().multiplyScalar(-3))
+        break
+      case 'right':
+        assetOffset = fwd.clone().multiplyScalar(5).add(rightVec.clone().multiplyScalar(3))
+        break
+      default: // center
+        assetOffset = fwd.clone().multiplyScalar(6)
+        break
+    }
+    const assetPos = camRef.clone().add(assetOffset)
+    this._currentAsset = spawnEventAsset(card, assetPos, scene, heightFn)
+
+    // Also spawn legacy event props for creature types
+    const propsPos = camPos.clone()
+    if (forward) propsPos.add(forward.clone().multiplyScalar(5))
+    this._eventProps = spawnEventProps(card, propsPos, scene, heightFn)
+
+    // Creature spawn disabled — assets only
+    // const evType = getEventType(card)
+    // if (this._spawner && (evType === 'creature' || evType === 'glow')) { ... }
+
+    // 3. Spawn encounter card in 3D — opposite side of asset
+    let cardLateral
+    switch (placement) {
+      case 'left': cardLateral = 1.3; break    // asset left → card right
+      case 'right': cardLateral = -1.3; break  // asset right → card left
+      default: cardLateral = (Math.random() > 0.5 ? -1.5 : 1.5); break // center → random side, wider
+    }
+    const cardPos = camRef.clone()
+      .add(fwd.clone().multiplyScalar(2.5))
+      .add(rightVec.clone().multiplyScalar(cardLateral))
+    cardPos.y = camRef.y + 0.1
+
+    const choices = card.choices || []
+    card._faction = card._faction || (card.tags?.[0]) || 'druides'
+
+    // Dismiss any pre-spawned placeholder card
+    if (this._card3d) {
+      this._card3d.dismiss()
+    }
+
+    this._encounterCard = new Card3D(scene, cam, {
+      position: cardPos,
+      card: card,
+      choices: choices,
+    })
+
+    SFX.cardDraw()
+    await this._encounterCard.flipIn(cam.position)
+    SFX.cardReveal()
+
+    // 4. Setup raycasting for choice selection on the 3D card
+    this._setupCardRaycast(card)
+
+    // 5. DOM fallback: if raycasting fails after 1.5s, show slim choice bar
+    this._choiceFallbackTimer = setTimeout(() => {
+      if (this._encounterActive && !this._choiceMade) {
+        this._showDOMChoiceFallback(card)
+      }
+    }, 1500)
+  }
+
+  /** Raycasting for clicking choices on the 3D card */
+  _setupCardRaycast(card) {
+    const raycaster = new THREE.Raycaster()
+    const pointer = new THREE.Vector2()
+    this._choiceMade = false
+
+    const onClick = (event) => {
+      if (this._choiceMade) return
+
+      // Get normalized coordinates
+      const rect = this._renderManager?._renderer?.domElement?.getBoundingClientRect()
+      if (!rect) return
+      const clientX = event.clientX ?? event.changedTouches?.[0]?.clientX
+      const clientY = event.clientY ?? event.changedTouches?.[0]?.clientY
+      if (clientX == null || clientY == null) return
+
+      pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
+      pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
+
+      raycaster.setFromCamera(pointer, this._world.getCamera())
+
+      // Check intersection with encounter card mesh
+      const cardGroup = this._encounterCard?.group
+      if (!cardGroup) return
+
+      const intersects = raycaster.intersectObject(cardGroup, true)
+      if (intersects.length > 0 && intersects[0].uv) {
+        const choiceIdx = this._encounterCard.getChoiceAtUV(intersects[0].uv)
+        if (choiceIdx >= 0) {
+          this._choiceMade = true
+          // SFX
+          try { SFX.choiceSelect() } catch (e) { /* ignore */ }
+          // Remove listeners
+          this._cleanupRaycast?.()
+          // Clear fallback timer
+          if (this._choiceFallbackTimer) {
+            clearTimeout(this._choiceFallbackTimer)
+            this._choiceFallbackTimer = null
+          }
+          // Process choice
+          this._handleChoice(choiceIdx)
+        }
+      }
+    }
+
+    // Touch support
+    const onTouch = (event) => {
+      if (event.changedTouches?.length) {
+        const touch = event.changedTouches[0]
+        onClick({ clientX: touch.clientX, clientY: touch.clientY })
+      }
+    }
+
+    // Keyboard navigation
+    let selectedIdx = -1
+    const choices = card.choices || []
+    const onKeydown = (e) => {
+      if (this._choiceMade || !choices.length) return
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+        e.preventDefault()
+        selectedIdx = selectedIdx < choices.length - 1 ? selectedIdx + 1 : 0
+        // Could highlight choice on card texture — for now just track
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+        e.preventDefault()
+        selectedIdx = selectedIdx > 0 ? selectedIdx - 1 : choices.length - 1
+      } else if (e.key === 'Enter' && selectedIdx >= 0) {
+        e.preventDefault()
+        this._choiceMade = true
+        try { SFX.choiceSelect() } catch (e) { /* ignore */ }
+        this._cleanupRaycast?.()
+        if (this._choiceFallbackTimer) {
+          clearTimeout(this._choiceFallbackTimer)
+          this._choiceFallbackTimer = null
+        }
+        this._handleChoice(selectedIdx)
+      }
+    }
+
+    document.addEventListener('click', onClick)
+    document.addEventListener('touchend', onTouch)
+    document.addEventListener('keydown', onKeydown)
+
+    this._cleanupRaycast = () => {
+      document.removeEventListener('click', onClick)
+      document.removeEventListener('touchend', onTouch)
+      document.removeEventListener('keydown', onKeydown)
+      this._cleanupRaycast = null
+    }
+  }
+
+  /** DOM fallback for choice selection (shown after 10s if no raycast click) */
+  _showDOMChoiceFallback(card) {
+    const center = this._el?.querySelector('#g3d-center')
+    if (!center || this._choiceMade) return
+
+    const colors = ['#33aa55', '#cc9933', '#4488cc']
+    const choicesHtml = (card.choices ?? []).map((c, i) =>
+      `<button class="g3d-slim-choice" data-idx="${i}" style="border-left:3px solid ${colors[i % 3]}">
+        ${(c.label || '').slice(0, 35)}
+      </button>`
+    ).join('')
+
+    center.innerHTML = `<div class="g3d-slim-bar">${choicesHtml}</div>`
+
+    const choiceBtns = [...center.querySelectorAll('.g3d-slim-choice')]
+    choiceBtns.forEach(btn => {
+      btn.addEventListener('mouseenter', () => { try { SFX.choiceHover() } catch (e) { /* ignore */ } })
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation()
+        e.preventDefault()
+        if (this._choiceMade) return
+        this._choiceMade = true
+        try { SFX.choiceSelect() } catch (e) { /* ignore */ }
+        this._cleanupRaycast?.()
+        const idx = parseInt(btn.dataset.idx)
+        choiceBtns.forEach((b, i) => {
+          b.disabled = true
+          if (i !== idx) b.style.opacity = '0.2'
+          else b.classList.add('g3d-slim-choice-selected')
+        })
+        this._handleChoice(idx)
+      })
+    })
+  }
+
+  /** Unified choice handler — called by raycast, keyboard, or DOM fallback */
+  async _handleChoice(idx) {
+    try {
+      await this._dismissEncounter()
+      await this._onChoice(idx, false)
+    } catch (err) {
+      console.error('[Game3D] onChoice error:', err)
+    } finally {
+      this._pathCamera?.resumeAfterChoice()
+    }
+  }
+
+  async _dismissEncounter() {
+    this._encounterActive = false
+
+    // Cleanup raycast listeners
+    this._cleanupRaycast?.()
+
+    // Clear fallback timer
+    if (this._choiceFallbackTimer) {
+      clearTimeout(this._choiceFallbackTimer)
+      this._choiceFallbackTimer = null
+    }
+
+    this._world.setMood('neutral')
+
+    // Dismiss encounter card with flip animation
+    if (this._encounterCard) {
+      SFX.transitionWhoosh()
+      await this._encounterCard.flipOut()
+      this._encounterCard = null
+    }
+
+    // Dismiss contextual asset (event_assets)
+    if (this._currentAsset) {
+      const scene = this._world?.getScene()
+      if (scene) await dismissEventAsset(this._currentAsset, scene)
+      this._currentAsset = null
+    }
+
+    // Dismiss legacy event props
+    if (this._eventProps) {
+      await dismissEventProps(this._eventProps, this._world.getScene())
+      this._eventProps = null
+    }
+
+    // Creature spawner disabled — no dismiss needed
+    // const dismissPos = this._spawner?.getGroup()?.position
+    // if (dismissPos) playEncounterDismiss(dismissPos, this._world.getCamera().position)
+    // await this._spawner?.dismiss()
+
+    // Clear DOM choice fallback bar
+    const center = this._el?.querySelector('#g3d-center')
+    if (center) center.innerHTML = ''
+  }
+
+  playEffect(effectType, faction) {
+    if (!this._effects) return
+    switch (effectType) {
+      case 'DAMAGE': this._effects.playDamage(); break
+      case 'HEAL': this._effects.playHeal(); break
+      case 'SHIFT_FACTION': this._effects.playShiftFaction(faction); break
+      case 'ADD_SOUFFLE': this._effects.playAddSouffle(); break
+      case 'ADD_TENSION': this._effects.playTension(); break
+    }
+  }
+}

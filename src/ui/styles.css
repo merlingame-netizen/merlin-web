@@ -38,10 +38,53 @@ html, body {
 /* VT323 font via Google Fonts (loaded in HTML) */
 
 /* ── Layout ─────────────────────────────────────────────────────────────── */
-#canvas-bg {
+#canvas-bg,
+#canvas-3d {
   position: fixed; inset: 0; z-index: 0;
   width: 100%; height: 100%;
+  pointer-events: none;
 }
+
+#hud-overlay {
+  position: fixed; inset: 0; z-index: 5;
+  pointer-events: none;
+}
+
+#hud-overlay > * { pointer-events: auto; }
+
+/* ── LLM Status Indicator (DOM overlay) ──────────────────────────────── */
+.llm-status-badge {
+  position: fixed; top: 16px; right: 16px; z-index: 15;
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 14px;
+  background: rgba(5, 12, 5, 0.85);
+  border: 1px solid var(--border);
+  font-family: var(--font); font-size: 0.8em;
+  color: var(--phosphor-dim);
+  pointer-events: none;
+}
+
+.llm-status-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--amber);
+  animation: llm-pulse 1.5s ease-in-out infinite;
+}
+
+.llm-status-dot.ok { background: var(--success); }
+.llm-status-dot.slow { background: var(--warning); }
+.llm-status-dot.error { background: var(--danger); animation: none; }
+
+@keyframes llm-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+#scene-container {
+  position: fixed; inset: 0; z-index: 10;
+  pointer-events: none;
+}
+
+#scene-container > * { pointer-events: auto; }
 
 #app {
   position: fixed; inset: 0; z-index: 10;
@@ -369,6 +412,43 @@ html, body {
   display: flex; flex-direction: column; gap: 12px; align-items: center;
 }
 
+/* ── Menu 3D overlay ─────────────────────────────────────────────────── */
+.scene-menu-3d-overlay {
+  position: fixed; inset: 0; z-index: 10;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-end;
+  padding-bottom: 10vh;
+  gap: 20px;
+  background: transparent;
+}
+
+.menu-btn-group-3d {
+  display: flex; flex-direction: column; gap: 12px; align-items: center;
+}
+
+.menu-btn-glow {
+  background: rgba(5, 12, 5, 0.6);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--phosphor);
+  text-shadow: 0 0 10px var(--phosphor);
+  box-shadow: 0 0 15px rgba(51, 255, 102, 0.1);
+  transition: all 0.25s;
+}
+
+.menu-btn-glow:hover {
+  background: rgba(51, 255, 102, 0.12);
+  box-shadow: 0 0 30px rgba(51, 255, 102, 0.25);
+  border-color: #55ff80;
+  transform: scale(1.03);
+}
+
+.menu-footer-3d {
+  font-size: 0.75em;
+  color: var(--phosphor-dim);
+  opacity: 0.6;
+  text-align: center;
+}
+
 /* ── Ending screen ──────────────────────────────────────────────────────── */
 #ending-screen {
   position: fixed; inset: 0; z-index: 60;
@@ -426,6 +506,440 @@ html, body {
 .save-slot .slot-info { color: var(--phosphor); font-size: 0.85em; }
 .save-slot .slot-date { color: var(--phosphor-dim); font-size: 0.75em; }
 
+/* ── 3D Game HUD ──────────────────────────────────────────────────────── */
+.scene-game3d {
+  position: fixed; inset: 0; z-index: 12;
+  display: flex; flex-direction: column;
+  font-family: var(--font);
+  animation: fadeInScene 2s ease-out forwards;
+}
+#scene-container > .scene-game3d { pointer-events: none; }
+
+@keyframes fadeInScene {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.scene-game3d > * { pointer-events: auto; }
+
+.g3d-hud-top {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 16px;
+  background: linear-gradient(to bottom, rgba(5,12,5,0.8), transparent);
+  pointer-events: none;
+}
+
+.g3d-factions {
+  display: flex; gap: 8px; font-size: 0.8em; align-items: center;
+}
+.g3d-faction-pip {
+  display: flex; align-items: center; gap: 2px; position: relative;
+}
+.g3d-faction-bar {
+  display: inline-block; height: 3px; border-radius: 2px;
+  min-width: 2px; max-width: 40px; transition: width 0.3s;
+}
+.g3d-info { font-size: 0.85em; display: flex; gap: 16px; }
+
+.g3d-center {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+  overflow-y: auto;
+  padding: 16px;
+}
+.g3d-center > * { pointer-events: auto; }
+.g3d-intro-actions, .g3d-slim-bar { pointer-events: auto !important; }
+.g3d-intro-actions *, .g3d-slim-bar * { pointer-events: auto !important; }
+
+.g3d-walk-hint {
+  color: var(--phosphor-dim); font-size: 0.9em; opacity: 0.6;
+  text-shadow: 0 0 6px var(--phosphor-glow);
+  animation: blink 2s step-end infinite;
+}
+
+.g3d-loading {
+  color: var(--amber); font-size: 1.2em;
+  text-shadow: 0 0 12px var(--amber);
+  animation: pulse-amber 1.5s ease-in-out infinite;
+}
+
+.g3d-start-prompt {
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  padding: 40px 60px;
+  background: rgba(5, 12, 5, 0.7);
+  border: 1px solid var(--amber);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  pointer-events: auto;
+  animation: g3d-start-breathe 2s ease-in-out infinite;
+}
+
+.g3d-start-icon {
+  font-size: 3em;
+  color: var(--amber);
+  text-shadow: 0 0 20px var(--amber), 0 0 40px rgba(255,190,51,0.3);
+}
+
+.g3d-start-text {
+  font-size: 1.5em;
+  color: var(--phosphor);
+  letter-spacing: 0.15em;
+  text-shadow: 0 0 10px var(--phosphor);
+}
+
+.g3d-start-hint {
+  font-size: 0.9em;
+  color: var(--phosphor-dim);
+  animation: blink 2s step-end infinite;
+}
+
+@keyframes g3d-start-breathe {
+  0%, 100% { box-shadow: 0 0 20px rgba(255,190,51,0.1); }
+  50% { box-shadow: 0 0 40px rgba(255,190,51,0.25); }
+}
+
+.g3d-hud-bottom {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 50;
+  pointer-events: auto;
+  padding: 16px 16px 24px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  background: linear-gradient(to top, rgba(5,12,5,0.9) 0%, rgba(5,12,5,0.6) 60%, transparent 100%);
+}
+
+.g3d-narrative {
+  max-width: 560px; width: 100%; text-align: center;
+  opacity: 0; transform: translateY(20px);
+  transition: opacity 0.5s, transform 0.5s;
+}
+
+.g3d-narrative.g3d-visible { opacity: 1; transform: translateY(0); }
+
+.g3d-card-title {
+  font-size: 1.3em; color: var(--amber);
+  text-shadow: 0 0 10px var(--amber);
+  margin-bottom: 8px;
+}
+
+.g3d-card-text {
+  font-size: 0.95em; color: var(--phosphor);
+  line-height: 1.6; margin-bottom: 12px;
+}
+
+.g3d-choices {
+  display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+  max-width: 600px;
+  pointer-events: auto;
+  opacity: 0; transform: translateY(20px);
+  transition: opacity 0.5s 0.2s, transform 0.5s 0.2s;
+}
+
+.g3d-choices.g3d-visible { opacity: 1; transform: translateY(0); }
+
+.g3d-choice-btn {
+  width: 100%; max-width: 400px;
+  padding: 10px 20px;
+  background: rgba(10, 26, 10, 0.75);
+  border: 1px solid var(--phosphor);
+  color: var(--phosphor);
+  font-family: var(--font); font-size: 0.95em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.g3d-choice-btn:hover,
+.g3d-choice-btn.g3d-choice-focused {
+  background: rgba(51, 255, 102, 0.12);
+  box-shadow: 0 0 20px var(--phosphor-glow);
+  border-color: #55ff80;
+  transform: scale(1.03);
+}
+
+.g3d-choice-btn.g3d-choice-focused {
+  outline: 2px solid var(--phosphor);
+  outline-offset: 2px;
+}
+
+.g3d-keyboard-hint {
+  width: 100%;
+  text-align: center;
+  font-size: 0.75em;
+  color: var(--phosphor-dim);
+  opacity: 0.5;
+  letter-spacing: 0.1em;
+  margin-top: 4px;
+}
+
+.g3d-sidebar {
+  position: fixed; top: 50%; right: 12px; z-index: 15;
+  transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 8px;
+}
+
+.g3d-btn {
+  padding: 6px 12px;
+  background: rgba(5, 12, 5, 0.7);
+  border: 1px solid var(--border);
+  color: var(--phosphor-dim);
+  font-family: var(--font); font-size: 0.75em;
+  cursor: pointer; transition: all 0.2s;
+}
+
+.g3d-btn:hover { border-color: var(--phosphor); color: var(--phosphor); }
+
+/* ── LLM Dual-Brain Panel ──────────────────────────────────────────────── */
+.g3d-llm-panel {
+  position: fixed; top: 50px; right: 12px; z-index: 15;
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 6px 10px;
+  background: rgba(5, 12, 5, 0.7);
+  border: 1px solid var(--border);
+  font-size: 0.7em;
+  backdrop-filter: blur(4px);
+}
+
+.g3d-brain {
+  display: flex; align-items: center; gap: 6px;
+}
+
+.brain-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--amber);
+  animation: llm-pulse 1.5s ease-in-out infinite;
+}
+
+.brain-dot.brain-ok { background: var(--success); animation: none; }
+.brain-dot.brain-error { background: var(--danger); animation: none; }
+.brain-dot.brain-connecting { background: var(--amber); }
+
+.brain-label {
+  color: var(--phosphor-dim); font-size: 0.9em;
+}
+
+/* ── Cinematic Intro / Loading Overlay ─────────────────────────────────── */
+.g3d-intro-overlay {
+  display: flex; flex-direction: column; align-items: center; gap: 20px;
+  padding: 40px 60px;
+  background: rgba(5, 12, 5, 0.75);
+  border: 1px solid var(--amber);
+  backdrop-filter: blur(10px);
+  max-width: 560px;
+  pointer-events: auto;
+  animation: g3d-start-breathe 3s ease-in-out infinite;
+}
+
+.g3d-intro-season {
+  font-size: 1.1em; color: var(--amber);
+  letter-spacing: 0.2em; text-transform: uppercase;
+  text-shadow: 0 0 12px var(--amber);
+}
+
+.g3d-intro-text {
+  font-size: 1.3em; color: var(--phosphor);
+  line-height: 1.8; text-align: center;
+  min-height: 60px;
+  white-space: pre-line;
+  text-shadow: 0 0 8px var(--phosphor-glow);
+}
+
+/* ── Loading Progress Bar ──────────────────────────────────────────────── */
+.g3d-intro-progress {
+  width: 100%;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+
+.g3d-progress-bar {
+  width: 80%; height: 6px;
+  background: rgba(51, 255, 102, 0.15);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.g3d-progress-fill {
+  height: 100%; width: 0%;
+  background: var(--phosphor);
+  box-shadow: 0 0 8px var(--phosphor);
+  transition: width 0.5s ease-out;
+  border-radius: 3px;
+}
+
+.g3d-progress-label {
+  font-size: 0.85em;
+  color: var(--phosphor-dim);
+  letter-spacing: 0.05em;
+  animation: blink 1.5s step-end infinite;
+}
+
+/* ── 3D Card Overlay (fade-in animation) ───────────────────────────────── */
+.g3d-card-overlay {
+  max-width: 520px; width: 90vw;
+  padding: 28px 32px;
+  background: rgba(5, 12, 5, 0.82);
+  border: 1px solid var(--amber);
+  backdrop-filter: blur(12px);
+  pointer-events: auto;
+  animation: cardFadeIn 0.6s ease-out forwards;
+  box-shadow: 0 0 30px rgba(255, 190, 51, 0.15), inset 0 0 20px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes cardFadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.g3d-card-overlay.g3d-card-fadeout {
+  animation: cardFadeOut 0.4s ease-out forwards;
+}
+
+@keyframes cardFadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-20px); }
+}
+
+.g3d-card-header {
+  font-size: 1.4em; color: var(--amber);
+  text-align: center; letter-spacing: 0.1em;
+  text-shadow: 0 0 12px var(--amber);
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.g3d-card-body {
+  font-size: 1em; color: var(--phosphor);
+  line-height: 1.7;
+  min-height: 60px;
+  text-shadow: 0 0 4px var(--phosphor-glow);
+}
+
+.g3d-card-body::after {
+  content: '\u2588';
+  animation: blink 0.7s step-end infinite;
+}
+
+.g3d-card-choices {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  margin-top: 16px; padding-top: 14px;
+  border-top: 1px solid var(--border);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.5s ease-out;
+}
+
+.g3d-card-choices.g3d-choices-visible {
+  opacity: 1; pointer-events: auto;
+}
+
+/* ── Souffle Boost Button ──────────────────────────────────────────────── */
+.g3d-souffle-btn {
+  width: 100%; max-width: 400px;
+  padding: 8px 16px;
+  margin-top: 8px;
+  background: rgba(10, 26, 10, 0.6);
+  border: 1px solid var(--amber);
+  color: var(--amber);
+  font-family: var(--font); font-size: 0.85em;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: all 0.3s;
+  letter-spacing: 0.05em;
+}
+
+.g3d-souffle-btn:hover {
+  background: rgba(255, 190, 51, 0.12);
+  box-shadow: 0 0 15px rgba(255, 190, 51, 0.2);
+}
+
+.g3d-souffle-btn.g3d-souffle-active {
+  background: rgba(255, 190, 51, 0.2);
+  border-color: #ffcc55;
+  color: #ffcc55;
+  box-shadow: 0 0 20px rgba(255, 190, 51, 0.3), inset 0 0 15px rgba(255, 190, 51, 0.1);
+  text-shadow: 0 0 8px rgba(255, 190, 51, 0.5);
+}
+
+/* ── Minigame Overlay ──────────────────────────────────────────────────── */
+.minigame-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(5, 12, 5, 0.6);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease-out;
+  cursor: pointer;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.minigame-card {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 28px 40px;
+  background: rgba(10, 26, 10, 0.9);
+  border: 2px solid var(--amber);
+  backdrop-filter: blur(8px);
+  animation: cardScaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.minigame-icon { font-size: 2.5em; }
+
+.minigame-name {
+  font-size: 1.1em; color: var(--amber);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  text-shadow: 0 0 10px var(--amber);
+}
+
+.minigame-d20 {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 2em;
+}
+
+.d20-die { font-size: 1.2em; }
+
+.d20-roll-anim {
+  font-size: 1.5em; color: var(--phosphor);
+  min-width: 1.5em; text-align: center;
+  text-shadow: 0 0 12px var(--phosphor);
+  transition: color 0.3s, text-shadow 0.3s;
+}
+
+.d20-roll-anim.roll-success {
+  color: var(--success);
+  text-shadow: 0 0 20px var(--success);
+  animation: rollLand 0.3s ease-out;
+}
+
+.d20-roll-anim.roll-fail {
+  color: var(--danger);
+  text-shadow: 0 0 20px var(--danger);
+  animation: rollLand 0.3s ease-out;
+}
+
+@keyframes rollLand {
+  0% { transform: scale(1.5); }
+  100% { transform: scale(1); }
+}
+
+.minigame-dc {
+  font-size: 0.85em; color: var(--phosphor-dim);
+  letter-spacing: 0.05em;
+}
+
+.minigame-result {
+  font-size: 1.3em; letter-spacing: 0.1em;
+  text-shadow: 0 0 12px currentColor;
+  transition: opacity 0.3s;
+}
+
+.minigame-result.success { color: var(--success); }
+.minigame-result.fail { color: var(--danger); }
+
+.minigame-hint {
+  font-size: 0.75em; color: var(--phosphor-dim);
+  opacity: 0.5; letter-spacing: 0.1em;
+  margin-top: 4px;
+}
+
 /* ── Utility ────────────────────────────────────────────────────────────── */
 .hidden { display: none !important; }
 
@@ -440,3 +954,276 @@ html, body {
   #card-display, #choices-area { max-width: 100%; }
   .menu-title h1 { font-size: 2.5em; }
 }
+
+/* === REFONTE V2 — Speed + VFX === */
+
+/* Card entry animation */
+.g3d-card-overlay {
+  animation: cardSlideUp 0.5s cubic-bezier(0.23, 1.12, 0.46, 1.01) forwards !important;
+}
+@keyframes cardSlideUp {
+  0% { opacity: 0; transform: translateY(40px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Choice button hover/active effects */
+.g3d-choice-btn {
+  transition: all 0.15s ease !important;
+  position: relative;
+  overflow: hidden;
+}
+.g3d-choice-btn:active {
+  transform: scale(0.96) !important;
+  box-shadow: 0 0 20px rgba(77, 217, 204, 0.3) !important;
+}
+.g3d-choice-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(77,217,204,0.08), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.4s;
+}
+.g3d-choice-btn:hover::after {
+  transform: translateX(100%);
+}
+
+/* Screen flash effect */
+.vfx-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  animation: flashFade 0.4s ease-out forwards;
+}
+.vfx-flash.damage { background: rgba(255, 51, 40, 0.25); }
+.vfx-flash.heal { background: rgba(51, 255, 102, 0.15); }
+.vfx-flash.success { background: rgba(255, 191, 51, 0.15); }
+
+@keyframes flashFade {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Screen shake */
+.vfx-shake {
+  animation: shake 0.3s ease-out !important;
+}
+@keyframes shake {
+  0%, 100% { transform: translate(0); }
+  20% { transform: translate(-4px, 2px); }
+  40% { transform: translate(4px, -2px); }
+  60% { transform: translate(-3px, 1px); }
+  80% { transform: translate(2px, -1px); }
+}
+
+/* Faster typewriter cursor */
+.g3d-card-body::after {
+  animation: blink 0.4s step-end infinite !important;
+}
+
+/* Smoother faction bar transitions */
+.faction-fill, .g3d-faction-fill {
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Card title glow pulse */
+.g3d-card-header {
+  animation: titleGlow 2s ease-in-out infinite alternate !important;
+}
+@keyframes titleGlow {
+  0% { text-shadow: 0 0 8px rgba(255, 191, 51, 0.3); }
+  100% { text-shadow: 0 0 16px rgba(255, 191, 51, 0.6), 0 0 30px rgba(255, 191, 51, 0.2); }
+}
+
+/* Minigame overlay (interactive) */
+.minigame-overlay {
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* Hide ogham/bestiole/faction elements */
+.g3d-bestiole-btn, .g3d-souffle-btn, .bestiole-wheel,
+.g3d-factions, #g3d-factions,
+.g3d-llm-panel, #g3d-llm-panel,
+.g3d-sidebar {
+  display: none !important;
+}
+
+/* Intro overlay speed */
+.g3d-intro-overlay {
+  transition: opacity 0.3s !important;
+}
+
+/* === MOBILE-FRIENDLY HUD === */
+.g3d-hud-top {
+  position: fixed !important;
+  top: max(env(safe-area-inset-top, 6px), 6px);
+  right: 8px;
+  left: auto !important;
+  width: auto !important;
+  z-index: 30;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  pointer-events: none;
+}
+.g3d-info {
+  font: 12px/1 'VT323', monospace !important;
+  color: rgba(255,255,255,.5) !important;
+  background: rgba(0,0,0,.35);
+  backdrop-filter: blur(6px);
+  padding: 4px 8px;
+  border-radius: 6px;
+  pointer-events: auto;
+}
+
+/* Hide old top-bar and faction panel in 2D mode too */
+#top-bar, #faction-panel, #right-panel { display: none !important; }
+
+/* Choice bar mobile: full width, bigger touch targets */
+@media (max-width: 768px) {
+  .g3d-slim-bar { padding: 10px 6px max(env(safe-area-inset-bottom, 8px), 8px); gap: 4px; }
+  .g3d-slim-choice { padding: 14px 8px; font-size: 12px; min-height: 48px; }
+  .g3d-intro-actions { padding: 12px 8px; gap: 6px; }
+  .menu-v2-title { font-size: 40px; }
+  .mc-wrap { height: 90vh; max-height: none; border-radius: 0; }
+}
+
+/* === SLIM CHOICE BAR (Hand of Fate 2 style) === */
+
+.g3d-slim-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 6px;
+  padding: 12px 10px max(env(safe-area-inset-bottom, 10px), 10px);
+  background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.3) 70%, transparent 100%);
+  animation: slimBarIn 0.4s cubic-bezier(0.23, 1.12, 0.46, 1.01) forwards;
+  z-index: 50;
+}
+
+.g3d-slim-choice {
+  flex: 1;
+  padding: 12px 10px;
+  background: rgba(10, 26, 10, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  color: rgba(255,255,255,0.85);
+  font: 13px/1.3 'VT323', monospace;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.g3d-slim-choice:active {
+  transform: scale(0.95);
+  background: rgba(77, 217, 204, 0.12);
+  border-color: rgba(77, 217, 204, 0.4);
+}
+
+.g3d-slim-choice-selected {
+  background: rgba(77, 217, 204, 0.15) !important;
+  border-color: rgba(77, 217, 204, 0.5) !important;
+  color: #fff !important;
+  box-shadow: 0 0 12px rgba(77, 217, 204, 0.2);
+}
+
+.g3d-slim-choice::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.3s;
+}
+.g3d-slim-choice:hover::after {
+  transform: translateX(100%);
+}
+
+@keyframes slimBarIn {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Hide old card overlay text elements when using 3D cards */
+.g3d-card-body, .g3d-card-header {
+  display: none !important;
+}
+
+/* === INTRO 3D CARD ACTIONS === */
+.g3d-intro-actions {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+  display: flex; gap: 8px; justify-content: center;
+  padding: 16px 12px max(env(safe-area-inset-bottom, 12px), 12px);
+  background: linear-gradient(to top, rgba(0,0,0,.6) 0%, transparent 100%);
+  animation: slimBarIn 0.5s ease-out forwards;
+}
+.g3d-intro-flip, .g3d-intro-go {
+  padding: 12px 22px; border-radius: 10px;
+  font: 14px/1 'VT323', monospace; cursor: pointer; transition: all .15s;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.g3d-intro-flip {
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: rgba(255,255,255,.7);
+}
+.g3d-intro-flip:active { transform: scale(.95); background: rgba(255,191,51,.1); border-color: rgba(255,191,51,.3); }
+.g3d-intro-go {
+  background: rgba(51,255,102,.08); border: 1px solid rgba(51,255,102,.25); color: #33ff66;
+}
+.g3d-intro-go:active { transform: scale(.95); background: rgba(51,255,102,.15); border-color: rgba(51,255,102,.4); }
+
+/* === MENU V2 === */
+.menu-v2 {
+  position: fixed; inset: 0; z-index: 40;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 24px; gap: 8px;
+  background: linear-gradient(to top, rgba(0,0,0,.7) 0%, rgba(0,0,0,.25) 50%, transparent 100%);
+}
+.menu-v2-title {
+  font: 52px/1 'VT323', monospace; color: #33ff66;
+  text-shadow: 0 0 20px rgba(51,255,102,.3), 0 0 40px rgba(51,255,102,.1);
+  letter-spacing: 3px;
+}
+.menu-v2-sub {
+  font: 13px/1 'Inter', sans-serif; color: rgba(255,255,255,.3);
+  letter-spacing: 2px; margin-bottom: 28px;
+}
+.menu-v2-btns { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 280px; }
+.mv2-btn {
+  padding: 13px 20px; border-radius: 10px;
+  background: rgba(10,26,10,.6); backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,.08);
+  color: rgba(255,255,255,.8); font: 15px/1 'VT323', monospace;
+  cursor: pointer; transition: all .15s; text-align: center;
+}
+.mv2-btn:active { transform: scale(.96); background: rgba(77,217,204,.1); border-color: rgba(77,217,204,.3); }
+.mv2-btn-primary { border-color: rgba(51,255,102,.25); color: #33ff66; }
+.mv2-btn-primary:active { border-color: rgba(51,255,102,.5); background: rgba(51,255,102,.08); }
+.mv2-btn-merlin { border-color: rgba(255,191,51,.2); color: rgba(255,191,51,.7); }
+.mv2-btn-merlin:active { border-color: rgba(255,191,51,.4); background: rgba(255,191,51,.08); }
+.menu-v2-footer { font: 10px/1 'Inter', sans-serif; color: rgba(255,255,255,.15); margin-top: 24px; }
+
+/* === MERLIN CHAT === */
+.scene-merlin-chat { position: fixed; inset: 0; z-index: 45; background: rgba(0,0,0,.88); display: flex; align-items: center; justify-content: center; }
+.mc-wrap { width: 100%; max-width: 400px; height: 80vh; max-height: 600px; display: flex; flex-direction: column; border-radius: 16px; overflow: hidden; background: rgba(10,20,10,.9); border: 1px solid rgba(255,255,255,.06); }
+.mc-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,.05); }
+.mc-back { background: none; border: none; color: rgba(255,255,255,.5); font: 14px 'VT323', monospace; cursor: pointer; }
+.mc-back:hover { color: #fff; }
+.mc-title { font: 15px/1 'VT323', monospace; color: #ffbe33; }
+.mc-messages { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.mc-msg { padding: 8px 12px; border-radius: 10px; font: 14px/1.4 'Inter', sans-serif; max-width: 85%; word-wrap: break-word; }
+.mc-merlin { background: rgba(51,255,102,.08); color: rgba(51,255,102,.85); align-self: flex-start; border: 1px solid rgba(51,255,102,.1); }
+.mc-user { background: rgba(255,255,255,.06); color: rgba(255,255,255,.75); align-self: flex-end; }
+.mc-typing { opacity: .5; animation: blink .7s step-end infinite; }
+.mc-input-row { display: flex; gap: 6px; padding: 10px; border-top: 1px solid rgba(255,255,255,.05); }
+.mc-input { flex: 1; padding: 10px 12px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 8px; color: #fff; font: 14px/1 'Inter', sans-serif; outline: none; }
+.mc-input:focus { border-color: rgba(51,255,102,.3); }
+.mc-send { width: 42px; background: rgba(51,255,102,.12); border: 1px solid rgba(51,255,102,.2); border-radius: 8px; color: #33ff66; font-size: 18px; cursor: pointer; }
+.mc-send:active { background: rgba(51,255,102,.2); }

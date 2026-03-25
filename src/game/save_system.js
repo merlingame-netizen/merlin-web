@@ -62,3 +62,26 @@ function _migrate(data) {
   // version migration placeholder
   return data
 }
+
+// ── Meta persistence (cross-run, separate from slot saves) ────────────────
+
+const META_KEY = 'merlin_meta'
+
+export function saveMeta(meta) {
+  try {
+    localStorage.setItem(META_KEY, JSON.stringify(meta))
+    return true
+  } catch {
+    return false
+  }
+}
+
+export function loadMeta() {
+  try {
+    const raw = localStorage.getItem(META_KEY)
+    if (!raw) return null
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}

@@ -1,0 +1,130 @@
+/* M.E.R.L.I.N. — Bestiole Ogham Wheel */
+
+.bestiole-wheel {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.2s;
+}
+
+.bestiole-wheel.hidden {
+  opacity: 0; pointer-events: none;
+}
+
+.wheel-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(5, 12, 5, 0.85);
+}
+
+.wheel-container {
+  position: relative;
+  width: 320px; height: 320px;
+}
+
+.wheel-center {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex; flex-direction: column;
+  align-items: center; gap: 4px; z-index: 2;
+}
+
+.wheel-bestiole {
+  font-size: 3em;
+  filter: drop-shadow(0 0 12px var(--phosphor));
+}
+
+.wheel-mood {
+  font-family: var(--font);
+  color: var(--phosphor-dim);
+  font-size: 0.75em;
+}
+
+.wheel-ring {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 0; height: 0;
+}
+
+.wheel-slot {
+  position: absolute;
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--phosphor-dim);
+  border-radius: 50%;
+  background: rgba(10, 26, 10, 0.8);
+  cursor: default;
+  transition: all 0.15s;
+  margin-left: -18px; margin-top: -18px;
+}
+
+.wheel-slot.usable {
+  cursor: pointer;
+  border-color: var(--phosphor);
+}
+
+.wheel-slot.usable:hover {
+  background: rgba(20, 50, 20, 0.9);
+  box-shadow: 0 0 10px var(--phosphor);
+  transform: translate(var(--tx, 0), var(--ty, 0)) scale(1.15);
+}
+
+.wheel-slot.locked {
+  opacity: 0.25;
+}
+
+.wheel-symbol {
+  font-size: 1.2em;
+  color: var(--amber);
+}
+
+.wheel-slot.locked .wheel-symbol {
+  color: var(--phosphor-dim);
+}
+
+.wheel-cd {
+  position: absolute;
+  bottom: -4px; right: -4px;
+  font-family: var(--font);
+  font-size: 0.6em;
+  color: var(--bg);
+  background: var(--phosphor-dim);
+  border-radius: 50%;
+  width: 14px; height: 14px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.wheel-close {
+  position: absolute;
+  top: -8px; right: -8px;
+  font-family: var(--font);
+  font-size: 1.2em;
+  color: var(--phosphor);
+  background: rgba(10, 26, 10, 0.9);
+  border: 1px solid var(--phosphor-dim);
+  border-radius: 50%;
+  width: 28px; height: 28px;
+  cursor: pointer; z-index: 3;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.wheel-close:hover {
+  background: rgba(40, 80, 40, 0.9);
+}
+
+/* Bestiole toggle button (in game scene) */
+.bestiole-toggle {
+  font-family: var(--font);
+  font-size: 1.5em;
+  background: none;
+  border: 1px solid var(--phosphor-dim);
+  color: var(--phosphor);
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.bestiole-toggle:hover {
+  border-color: var(--phosphor);
+  box-shadow: 0 0 8px rgba(51, 255, 102, 0.2);
+}

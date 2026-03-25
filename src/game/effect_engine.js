@@ -1,11 +1,12 @@
-// M.E.R.L.I.N. — Effect Engine (ported from merlin_effect_engine.gd)
+// M.E.R.L.I.N. — Effect Engine
+// Faction reputation system (replaces Triade aspects)
 
-import { SOUFFLE_MAX, LIFE_ESSENCE_MAX } from './constants.js'
+import { SOUFFLE_MAX, LIFE_ESSENCE_MAX, FACTIONS } from './constants.js'
 
 const VALID_CODES = {
-  SHIFT_ASPECT: 2,       // SHIFT_ASPECT:Corps:1
+  SHIFT_FACTION: 2,      // SHIFT_FACTION:druides:10
   USE_SOUFFLE: 1,        // USE_SOUFFLE:1
-  ADD_SOUFFLE: 1,        // ADD_SOUFFLE:2
+  ADD_SOUFFLE: 1,        // ADD_SOUFFLE:1
   DAMAGE_LIFE: 1,        // DAMAGE_LIFE:1
   HEAL_LIFE: 1,          // HEAL_LIFE:1
   ADD_KARMA: 1,          // ADD_KARMA:10
@@ -25,6 +26,9 @@ const VALID_CODES = {
   MODIFY_BOND: 1,        // MODIFY_BOND:5
   ADD_ESSENCES: 1,       // ADD_ESSENCES:3
   PROGRESS_MISSION: 1,   // PROGRESS_MISSION:1
+  ACTIVATE_OGHAM: 1,     // ACTIVATE_OGHAM:beith
+  TRIGGER_MINIGAME: 2,   // TRIGGER_MINIGAME:chance:1
+  SHIFT_ASPECT: 2,       // Legacy compat — silently ignored
 }
 
 export function applyEffects(state, effects, source = 'SYSTEM') {
@@ -58,11 +62,15 @@ function _apply(state, { name, args }) {
   const run = state.run
 
   switch (name) {
-    case 'SHIFT_ASPECT': {
-      const aspect = args[0]
+    case 'SHIFT_FACTION': {
+      const faction = args[0].toLowerCase()
       const delta = parseInt(args[1])
-      if (!['Corps', 'Ame', 'Monde'].includes(aspect)) return false
-      run.triade[aspect] = Math.max(-1, Math.min(1, (run.triade[aspect] ?? 0) + delta))
+      if (!FACTIONS.includes(faction)) return false
+      run.factions[faction] = Math.max(0, Math.min(100, (run.factions[faction] ?? 50) + delta))
+      return true
+    }
+    case 'SHIFT_ASPECT': {
+      // Legacy compat: silently ignore old SHIFT_ASPECT effects
       return true
     }
     case 'USE_SOUFFLE': {
@@ -161,7 +169,15 @@ function _apply(state, { name, args }) {
       return true
     }
     case 'PROGRESS_MISSION': {
-      return true // no-op for now
+      return true
+    }
+    case 'ACTIVATE_OGHAM': {
+      return true
+    }
+    case 'TRIGGER_MINIGAME': {
+      run.flags = run.flags ?? {}
+      run.flags.pending_minigame = { type: args[0], difficulty: parseInt(args[1]) }
+      return true
     }
     default:
       return false

@@ -257,6 +257,22 @@ export class CRTScene {
     this._renderer.setSize(window.innerWidth, window.innerHeight)
   }
 
+  // Tint background based on biome color
+  setBiomeTint(hexColor) {
+    if (this._bgMesh?.material?.uniforms?.uColor2) {
+      const c = new THREE.Color(hexColor)
+      // Subtle tint: mix with base dark
+      const tinted = new THREE.Color(0x0a1a0a).lerp(c, 0.15)
+      this._bgMesh.material.uniforms.uColor2.value = tinted
+    }
+  }
+
+  resetTint() {
+    if (this._bgMesh?.material?.uniforms?.uColor2) {
+      this._bgMesh.material.uniforms.uColor2.value = new THREE.Color(0x0a1a0a)
+    }
+  }
+
   destroy() {
     if (this._animId) cancelAnimationFrame(this._animId)
     this._renderer?.dispose()
