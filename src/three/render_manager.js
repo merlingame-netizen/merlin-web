@@ -29,7 +29,8 @@ export class RenderManager {
     this._postProcessing = new PostProcessing(this._renderer)
     this._postEnabled = false // off by default (menu doesn't need it)
 
-    window.addEventListener('resize', () => this._onResize())
+    this._resizeHandler = () => this._onResize()
+    window.addEventListener('resize', this._resizeHandler)
     this._animate()
   }
 
@@ -95,7 +96,7 @@ export class RenderManager {
     if (this._animId) cancelAnimationFrame(this._animId)
     this._postProcessing.dispose()
     this._renderer.dispose()
-    window.removeEventListener('resize', this._onResize)
+    window.removeEventListener('resize', this._resizeHandler)
     _instance = null
   }
 }

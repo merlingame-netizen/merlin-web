@@ -99,6 +99,7 @@ document.body.innerHTML = `
 // ── Three.js RenderManager + Menu 3D ─────────────────────────────────────────
 const canvas = document.getElementById('canvas-3d')
 const renderManager = new RenderManager(canvas)
+window.addEventListener('beforeunload', () => renderManager.dispose())
 const menuScene3D = new MenuScene3D()
 
 // Activate menu 3D scene immediately
