@@ -6,7 +6,7 @@ function groqProxy() {
 
   const MODELS = {
     narrator: 'llama-3.3-70b-versatile',
-    gm:       'llama-3.1-8b-instant',
+    gm:       'llama-3.3-70b-versatile',
     scenario: 'llama-3.3-70b-versatile',
   }
 

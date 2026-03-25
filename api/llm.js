@@ -6,7 +6,7 @@ const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
 const MODELS = {
   narrator:  process.env.GROQ_MODEL_NARRATOR || 'llama-3.3-70b-versatile',
-  gm:        process.env.GROQ_MODEL_GM       || 'llama-3.1-8b-instant',
+  gm:        process.env.GROQ_MODEL_GM       || 'llama-3.3-70b-versatile',
   scenario:  process.env.GROQ_MODEL_NARRATOR || 'llama-3.3-70b-versatile',
 }
 

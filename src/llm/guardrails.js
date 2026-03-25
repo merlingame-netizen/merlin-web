@@ -35,9 +35,10 @@ export function validateCard(card) {
   const frCount = frMarkers.filter(m => textLower.includes(m)).length
   if (frCount < 2) errors.push('Not enough French markers')
 
-  // Forbidden words check
+  // Forbidden words check (word boundary to avoid false positives like "initiale" matching "ia")
   for (const word of PERSONA.forbidden_words) {
-    if (textLower.includes(word.toLowerCase())) {
+    const escaped = word.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    if (new RegExp(`\\b${escaped}\\b`).test(textLower)) {
       errors.push(`Forbidden word: ${word}`)
     }
   }
