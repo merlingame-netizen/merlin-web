@@ -532,7 +532,43 @@ router.register('collection', collectionScene)
 
 // ── Game flow ──────────────────────────────────────────────────────────────
 
-function startFirstRun() {
+function _showLoadingScreen() {
+  const el = document.createElement('div')
+  el.id = 'merlin-loading'
+  el.style.cssText = 'position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#060d06;color:#33FF66;font-family:VT323,monospace;'
+  el.innerHTML = `
+    <div style="font-size:28px;letter-spacing:6px;margin-bottom:20px;opacity:0.9">M.E.R.L.I.N.</div>
+    <div style="font-size:16px;opacity:0.6;margin-bottom:30px">Merlin prépare votre destinée...</div>
+    <div style="width:200px;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden">
+      <div id="merlin-load-bar" style="height:100%;background:#33FF66;border-radius:2px;width:0%;transition:width 0.3s"></div>
+    </div>
+  `
+  document.body.appendChild(el)
+  // Animate bar
+  let pct = 0
+  const iv = setInterval(() => {
+    pct = Math.min(95, pct + 5 + Math.random() * 10)
+    const bar = document.getElementById('merlin-load-bar')
+    if (bar) bar.style.width = pct + '%'
+    if (pct >= 95) clearInterval(iv)
+  }, 300)
+  el._iv = iv
+}
+
+function _hideLoadingScreen() {
+  const el = document.getElementById('merlin-loading')
+  if (!el) return
+  if (el._iv) clearInterval(el._iv)
+  const bar = document.getElementById('merlin-load-bar')
+  if (bar) bar.style.width = '100%'
+  setTimeout(() => {
+    el.style.transition = 'opacity 0.6s'
+    el.style.opacity = '0'
+    setTimeout(() => el.remove(), 600)
+  }, 300)
+}
+
+async function startFirstRun() {
   _hide3D()
   SFX.confirm()
 
@@ -545,10 +581,17 @@ function startFirstRun() {
   _difficulty = createDifficultyState()
   _syncRegistries()
 
-  // Pre-generate scenario in background
+  // Show loading screen while LLM prepares cards
+  _showLoadingScreen()
+
+  // Pre-generate scenario + 5 cards (race with 6s timeout)
   clearScenario()
-  generateScenario(getState()).catch(e => console.warn('[Scenario] Init failed:', e?.message))
-  prewarmMultiple(getState(), 2).catch(e => console.warn('[Prewarm] Failed:', e?.message))
+  const llmReady = Promise.allSettled([
+    generateScenario(getState()),
+    prewarmMultiple(getState(), 5),
+  ])
+  await Promise.race([llmReady, new Promise(r => setTimeout(r, 6000))])
+  _hideLoadingScreen()
 
   // Wire encounter callback: PathCamera stops → draw next card
   gameScene3D.setOnEncounterReached((_encounterIdx) => {
