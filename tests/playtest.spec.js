@@ -195,21 +195,26 @@ test('PLAYTEST: Full game run with screenshots', async ({ page }) => {
     }
     await shot(page, `06_encounter_${encounter}`)
 
-    // Click a DOM choice (slim bar preferred)
+    // Click choice via canvas raycast (simulate click on choice zones of 3D card)
     const choice = await page.evaluate(() => {
-      // Slim bar choices (bottom bar)
+      // Try DOM choices first (slim bar if present)
       const slimChoices = document.querySelectorAll('.g3d-slim-choice')
       if (slimChoices.length > 0) {
         const idx = Math.floor(Math.random() * slimChoices.length)
         slimChoices[idx].click()
         return `slim-${idx} of ${slimChoices.length}: "${slimChoices[idx].textContent.trim()}"`
       }
-      // Other choice elements
-      const choiceBtns = document.querySelectorAll('.choice-btn, [class*="choice"]')
-      if (choiceBtns.length > 0) {
-        const idx = Math.floor(Math.random() * choiceBtns.length)
-        choiceBtns[idx].click()
-        return `choice-${idx} of ${choiceBtns.length}`
+      // Raycast on canvas: click choice zone (bottom-left of screen = choice area)
+      const canvas = document.querySelector('#canvas-3d')
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect()
+        // Choice zones are on the left side of screen (where card is), bottom third
+        const choiceIdx = Math.floor(Math.random() * 3)
+        const yOffsets = [0.55, 0.67, 0.80] // top/mid/bottom choice on card
+        const x = rect.left + rect.width * 0.22 // card is left-side
+        const y = rect.top + rect.height * yOffsets[choiceIdx]
+        canvas.dispatchEvent(new MouseEvent('click', { clientX: x, clientY: y, bubbles: true }))
+        return `raycast-choice-${choiceIdx}`
       }
       return null
     })
