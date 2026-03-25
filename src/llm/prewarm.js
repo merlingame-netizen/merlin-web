@@ -147,6 +147,10 @@ function _refillBuffer(state) {
 
 // Pre-warm multiple cards at startup
 export async function prewarmMultiple(state, count = 2) {
+  if (!state?.run) {
+    console.warn('[LLM] Skipping prewarm — run not initialized')
+    return
+  }
   console.log(`[LLM] Pre-warming ${count} cards...`)
   try {
     const promises = []

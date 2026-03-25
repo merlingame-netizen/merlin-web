@@ -44,6 +44,7 @@ export function getScenarioIntro() {
 
 export async function generateScenario(state) {
   if (_generating) return false
+  if (!state?.run) { console.warn('[Scenario] Skipping — run not initialized'); return false }
   _generating = true
 
   try {

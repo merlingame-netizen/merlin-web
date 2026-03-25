@@ -63,11 +63,11 @@ export class MinigameOverlay {
       document.addEventListener('keydown', keyHandler)
     }, 1200)
 
-    // Safety auto-dismiss after 8s
+    // Auto-dismiss after 3s for smooth game flow
     this._timer = setTimeout(() => {
       document.removeEventListener('keydown', keyHandler)
       this._cleanup()
-    }, 8000)
+    }, 3000)
   }
 
   _cleanup() {
