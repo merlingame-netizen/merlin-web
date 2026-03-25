@@ -362,17 +362,363 @@ function playSangFroid() {
 }
 
 // ══════════════════════════════════════════════════════════════
+// ARCHERY — Aim at moving target
+// ══════════════════════════════════════════════════════════════
+function playArchery() {
+  return new Promise(resolve => {
+    const { wrap, cv, cx, name, barFill, result } = createOverlay()
+    name.textContent = 'Tir à l\'arc'
+    const dur = 8
+    let timer = 0, done = false, arrows = [], targetX = 200, targetY = 100, targetVx = 2, score = 0
+
+    cv.addEventListener('click', e => {
+      if (done || arrows.length >= 5) return
+      const r = cv.getBoundingClientRect()
+      const x = (e.clientX - r.left) / r.width * 400, y = (e.clientY - r.top) / r.height * 400
+      const dist = Math.hypot(x - targetX, y - targetY)
+      const pts = dist < 15 ? 100 : dist < 35 ? 70 : dist < 60 ? 40 : 10
+      score += pts
+      arrows.push({ x, y, pts, t: 1 })
+    })
+
+    const loop = () => {
+      if (done) return
+      timer += .016; barFill.style.width = ((1 - timer / dur) * 100) + '%'
+      targetX += targetVx
+      if (targetX > 370 || targetX < 30) targetVx *= -1
+      targetY = 100 + Math.sin(timer * 2) * 40
+
+      bg(cx)
+      // Target
+      cx.beginPath(); cx.arc(targetX, targetY, 25, 0, 6.28); cx.strokeStyle = PALETTE.red; cx.lineWidth = 2; cx.stroke()
+      cx.beginPath(); cx.arc(targetX, targetY, 12, 0, 6.28); cx.strokeStyle = PALETTE.amber; cx.lineWidth = 2; cx.stroke()
+      cx.beginPath(); cx.arc(targetX, targetY, 4, 0, 6.28); cx.fillStyle = PALETTE.green; cx.fill()
+      // Arrows
+      arrows.forEach(a => {
+        cx.fillStyle = a.pts >= 70 ? PALETTE.green : PALETTE.amber
+        cx.fillRect(a.x - 1, a.y - 6, 2, 12)
+        cx.fillStyle = PALETTE.white; cx.font = '11px Inter'; cx.fillText('+' + a.pts, a.x + 5, a.y)
+      })
+      cx.fillStyle = PALETTE.white; cx.font = '13px Inter'; cx.fillText(`Cliquez pour tirer (${5 - arrows.length} flèches)`, 100, 390)
+
+      if (timer >= dur || arrows.length >= 5) {
+        done = true
+        const finalScore = clamp(Math.round(score / 5), 0, 100)
+        result.textContent = 'Score: ' + finalScore; result.style.opacity = '1'
+        setTimeout(() => { wrap.remove(); resolve({ score: finalScore, success: finalScore >= 50 }) }, 900)
+      } else requestAnimationFrame(loop)
+    }
+    requestAnimationFrame(loop)
+  })
+}
+
+// ══════════════════════════════════════════════════════════════
+// PUZZLE — Arrange rune stones in order
+// ══════════════════════════════════════════════════════════════
+function playPuzzle() {
+  return new Promise(resolve => {
+    const { wrap, cv, cx, name, barFill, result } = createOverlay()
+    name.textContent = 'Puzzle Runique'
+    const dur = 12
+    const runes = ['ᚁ', 'ᚂ', 'ᚃ', 'ᚄ', 'ᚅ', 'ᚆ']
+    const target = [...runes]
+    const shuffled = [...runes].sort(() => Math.random() - 0.5)
+    let grid = shuffled.map((r, i) => ({ rune: r, x: 50 + (i % 3) * 110, y: 140 + Math.floor(i / 3) * 110, correct: false }))
+    let selected = -1, moves = 0, timer = 0, done = false
+
+    cv.addEventListener('click', e => {
+      if (done) return
+      const r = cv.getBoundingClientRect()
+      const x = (e.clientX - r.left) / r.width * 400, y = (e.clientY - r.top) / r.height * 400
+      const idx = grid.findIndex(g => Math.hypot(x - g.x - 35, y - g.y - 35) < 40)
+      if (idx < 0) return
+      if (selected < 0) { selected = idx }
+      else {
+        // Swap
+        const tmp = grid[selected].rune; grid[selected].rune = grid[idx].rune; grid[idx].rune = tmp
+        selected = -1; moves++
+        // Check completion
+        grid.forEach((g, i) => { g.correct = g.rune === target[i] })
+        if (grid.every(g => g.correct)) { finish() }
+      }
+    })
+
+    const finish = () => {
+      done = true
+      const score = clamp(100 - moves * 8, 10, 100)
+      result.textContent = 'Score: ' + score; result.style.opacity = '1'
+      setTimeout(() => { wrap.remove(); resolve({ score, success: score >= 50 }) }, 900)
+    }
+
+    const loop = () => {
+      if (done) return
+      timer += .016; barFill.style.width = ((1 - timer / dur) * 100) + '%'
+      bg(cx)
+      // Target order
+      cx.fillStyle = PALETTE.white; cx.font = '12px Inter'; cx.fillText('Ordre: ' + target.join(' '), 120, 30)
+      // Grid
+      grid.forEach((g, i) => {
+        cx.fillStyle = i === selected ? PALETTE.amber : (g.correct ? PALETTE.green : 'rgba(255,255,255,0.08)')
+        cx.fillRect(g.x, g.y, 70, 70); cx.strokeStyle = 'rgba(255,255,255,0.2)'; cx.strokeRect(g.x, g.y, 70, 70)
+        cx.fillStyle = PALETTE.white; cx.font = '28px serif'; cx.textAlign = 'center'; cx.fillText(g.rune, g.x + 35, g.y + 48); cx.textAlign = 'left'
+      })
+      cx.fillStyle = PALETTE.white; cx.font = '12px Inter'; cx.fillText(`Échangez les runes (${moves} coups)`, 110, 390)
+      if (timer >= dur) finish()
+      else requestAnimationFrame(loop)
+    }
+    requestAnimationFrame(loop)
+  })
+}
+
+// ══════════════════════════════════════════════════════════════
+// FISHING — Timing catch
+// ══════════════════════════════════════════════════════════════
+function playFishing() {
+  return new Promise(resolve => {
+    const { wrap, cv, cx, name, barFill, result } = createOverlay()
+    name.textContent = 'Pêche'
+    const dur = 10
+    let timer = 0, done = false, fish = [], caught = 0, bobY = 200, bobPhase = Math.random() * 6.28
+
+    cv.addEventListener('click', () => {
+      if (done) return
+      // Check if any fish near the bobber
+      const nearFish = fish.find(f => Math.hypot(f.x - 200, f.y - bobY) < 30 && !f.caught)
+      if (nearFish) { nearFish.caught = true; caught++ }
+    })
+
+    // Spawn fish
+    for (let i = 0; i < 6; i++) {
+      fish.push({ x: -20 - Math.random() * 200, y: 150 + Math.random() * 200, speed: 0.8 + Math.random() * 1.5, caught: false, size: 8 + Math.random() * 12 })
+    }
+
+    const loop = () => {
+      if (done) return
+      timer += .016; barFill.style.width = ((1 - timer / dur) * 100) + '%'
+      bobY = 200 + Math.sin(bobPhase + timer * 1.5) * 60
+
+      bg(cx)
+      // Water
+      cx.fillStyle = 'rgba(40,80,120,0.3)'; cx.fillRect(0, 130, 400, 270)
+      // Bobber
+      cx.fillStyle = PALETTE.red; cx.beginPath(); cx.arc(200, bobY, 6, 0, 6.28); cx.fill()
+      cx.strokeStyle = PALETTE.white; cx.lineWidth = 1; cx.beginPath(); cx.moveTo(200, 20); cx.lineTo(200, bobY); cx.stroke()
+      // Fish
+      fish.forEach(f => {
+        if (f.caught) return
+        f.x += f.speed
+        if (f.x > 420) f.x = -20
+        cx.fillStyle = PALETTE.cyan; cx.beginPath()
+        cx.ellipse(f.x, f.y, f.size, f.size * 0.5, 0, 0, 6.28); cx.fill()
+        // Tail
+        cx.beginPath(); cx.moveTo(f.x - f.size, f.y); cx.lineTo(f.x - f.size - 6, f.y - 5); cx.lineTo(f.x - f.size - 6, f.y + 5); cx.fill()
+      })
+      cx.fillStyle = PALETTE.white; cx.font = '13px Inter'; cx.fillText(`Attrapé: ${caught}/6 — Cliquez quand un poisson passe!`, 60, 390)
+
+      if (timer >= dur) {
+        done = true
+        const score = clamp(Math.round(caught / 6 * 100), 0, 100)
+        result.textContent = 'Score: ' + score; result.style.opacity = '1'
+        setTimeout(() => { wrap.remove(); resolve({ score, success: score >= 50 }) }, 900)
+      } else requestAnimationFrame(loop)
+    }
+    requestAnimationFrame(loop)
+  })
+}
+
+// ══════════════════════════════════════════════════════════════
+// NEGOTIATE — Slider matching
+// ══════════════════════════════════════════════════════════════
+function playNegotiate() {
+  return new Promise(resolve => {
+    const { wrap, cv, cx, name, barFill, result } = createOverlay()
+    name.textContent = 'Négociation'
+    const dur = 8
+    const targetVal = 30 + Math.floor(Math.random() * 40) // hidden target
+    let sliderVal = 50, timer = 0, done = false, guesses = 0, bestDist = 100
+
+    cv.addEventListener('click', e => {
+      if (done) return
+      const r = cv.getBoundingClientRect()
+      const x = (e.clientX - r.left) / r.width * 400
+      sliderVal = clamp(Math.round(x / 400 * 100), 0, 100)
+      guesses++
+      bestDist = Math.min(bestDist, Math.abs(sliderVal - targetVal))
+    })
+
+    const loop = () => {
+      if (done) return
+      timer += .016; barFill.style.width = ((1 - timer / dur) * 100) + '%'
+      bg(cx)
+      // Slider track
+      cx.fillStyle = 'rgba(255,255,255,0.06)'; cx.fillRect(20, 190, 360, 20)
+      // Slider value
+      const slX = 20 + (sliderVal / 100) * 360
+      cx.fillStyle = PALETTE.amber; cx.fillRect(slX - 4, 182, 8, 36)
+      // Hint (warm/cold)
+      const dist = Math.abs(sliderVal - targetVal)
+      const hint = dist < 5 ? '🔥 Brûlant!' : dist < 15 ? '♨️ Chaud' : dist < 30 ? '🌡️ Tiède' : '❄️ Froid'
+      cx.fillStyle = PALETTE.white; cx.font = '20px Inter'; cx.textAlign = 'center'; cx.fillText(hint, 200, 160); cx.textAlign = 'left'
+      cx.fillStyle = PALETTE.white; cx.font = '13px Inter'; cx.fillText(`Offre: ${sliderVal} — Cliquez pour ajuster (${guesses} essais)`, 60, 300)
+
+      if (timer >= dur || bestDist < 3) {
+        done = true
+        const score = clamp(100 - bestDist * 2, 0, 100)
+        result.textContent = 'Score: ' + score; result.style.opacity = '1'
+        setTimeout(() => { wrap.remove(); resolve({ score, success: score >= 50 }) }, 900)
+      } else requestAnimationFrame(loop)
+    }
+    requestAnimationFrame(loop)
+  })
+}
+
+// ══════════════════════════════════════════════════════════════
+// STEALTH — Avoid detection zones
+// ══════════════════════════════════════════════════════════════
+function playStealth() {
+  return new Promise(resolve => {
+    const { wrap, cv, cx, name, barFill, result } = createOverlay()
+    name.textContent = 'Furtivité'
+    const dur = 8
+    let playerX = 200, playerY = 350, timer = 0, done = false, detected = 0
+    const guards = Array.from({ length: 4 }, () => ({
+      x: 50 + Math.random() * 300, y: 50 + Math.random() * 200,
+      angle: Math.random() * 6.28, rotSpeed: 0.5 + Math.random() * 1.5
+    }))
+
+    cv.addEventListener('pointermove', e => {
+      if (done) return
+      const r = cv.getBoundingClientRect()
+      playerX = (e.clientX - r.left) / r.width * 400
+      playerY = (e.clientY - r.top) / r.height * 400
+    })
+
+    const loop = () => {
+      if (done) return
+      timer += .016; barFill.style.width = ((1 - timer / dur) * 100) + '%'
+      bg(cx)
+      // Goal
+      cx.fillStyle = PALETTE.green; cx.beginPath(); cx.arc(200, 30, 15, 0, 6.28); cx.fill()
+      cx.fillStyle = PALETTE.white; cx.font = '10px Inter'; cx.textAlign = 'center'; cx.fillText('SORTIE', 200, 34); cx.textAlign = 'left'
+      // Guards + detection cones
+      guards.forEach(g => {
+        g.angle += g.rotSpeed * 0.016
+        const coneLen = 80, coneAngle = 0.5
+        cx.fillStyle = 'rgba(255,51,40,0.12)'
+        cx.beginPath(); cx.moveTo(g.x, g.y)
+        cx.lineTo(g.x + Math.cos(g.angle - coneAngle) * coneLen, g.y + Math.sin(g.angle - coneAngle) * coneLen)
+        cx.lineTo(g.x + Math.cos(g.angle + coneAngle) * coneLen, g.y + Math.sin(g.angle + coneAngle) * coneLen)
+        cx.fill()
+        cx.fillStyle = PALETTE.red; cx.beginPath(); cx.arc(g.x, g.y, 6, 0, 6.28); cx.fill()
+        // Detection check
+        const dx = playerX - g.x, dy = playerY - g.y, dist = Math.hypot(dx, dy)
+        const angleTo = Math.atan2(dy, dx)
+        const angleDiff = Math.abs(((angleTo - g.angle + Math.PI * 3) % (Math.PI * 2)) - Math.PI)
+        if (dist < coneLen && angleDiff < coneAngle) detected++
+      })
+      // Player
+      cx.fillStyle = PALETTE.cyan; cx.beginPath(); cx.arc(playerX, playerY, 5, 0, 6.28); cx.fill()
+      cx.fillStyle = PALETTE.white; cx.font = '12px Inter'; cx.fillText('Atteignez la sortie sans être vu!', 100, 390)
+
+      // Reached goal?
+      if (Math.hypot(playerX - 200, playerY - 30) < 20) {
+        done = true
+        const score = clamp(100 - detected, 0, 100)
+        result.textContent = 'Score: ' + score; result.style.opacity = '1'
+        setTimeout(() => { wrap.remove(); resolve({ score, success: score >= 50 }) }, 900)
+      } else if (timer >= dur) {
+        done = true
+        const score = clamp(30 - detected, 0, 100)
+        result.textContent = 'Score: ' + score; result.style.opacity = '1'
+        setTimeout(() => { wrap.remove(); resolve({ score, success: score >= 50 }) }, 900)
+      } else requestAnimationFrame(loop)
+    }
+    requestAnimationFrame(loop)
+  })
+}
+
+// ══════════════════════════════════════════════════════════════
+// DIVINATION — Pattern memory
+// ══════════════════════════════════════════════════════════════
+function playDivination() {
+  return new Promise(resolve => {
+    const { wrap, cv, cx, name, barFill, result } = createOverlay()
+    name.textContent = 'Divination'
+    const dur = 15, seqLen = 4
+    const symbols = ['☽', '☀', '★', '⚡', '♦', '⬟']
+    const sequence = Array.from({ length: seqLen }, () => Math.floor(Math.random() * 6))
+    let phase = 'show', showIdx = 0, playerSeq = [], timer = 0, showTimer = 0, done = false
+
+    cv.addEventListener('click', e => {
+      if (done || phase !== 'input') return
+      const r = cv.getBoundingClientRect()
+      const x = (e.clientX - r.left) / r.width * 400
+      const idx = clamp(Math.floor(x / 67), 0, 5)
+      playerSeq.push(idx)
+      if (playerSeq.length >= seqLen) {
+        let correct = 0
+        for (let i = 0; i < seqLen; i++) if (playerSeq[i] === sequence[i]) correct++
+        done = true
+        const score = clamp(Math.round(correct / seqLen * 100), 0, 100)
+        result.textContent = 'Score: ' + score; result.style.opacity = '1'
+        setTimeout(() => { wrap.remove(); resolve({ score, success: score >= 50 }) }, 900)
+      }
+    })
+
+    const loop = () => {
+      if (done) return
+      timer += .016; barFill.style.width = ((1 - timer / dur) * 100) + '%'
+      bg(cx)
+
+      if (phase === 'show') {
+        showTimer += .016
+        showIdx = Math.floor(showTimer / 1.2)
+        if (showIdx >= seqLen) { phase = 'input'; showTimer = 0 }
+        else {
+          cx.fillStyle = PALETTE.amber; cx.font = '60px serif'; cx.textAlign = 'center'
+          cx.fillText(symbols[sequence[showIdx]], 200, 200)
+          cx.fillStyle = PALETTE.white; cx.font = '14px Inter'
+          cx.fillText(`Mémorisez: ${showIdx + 1}/${seqLen}`, 200, 280); cx.textAlign = 'left'
+        }
+      } else {
+        // Input phase — show symbol grid
+        symbols.forEach((s, i) => {
+          const sx = 10 + i * 67
+          cx.fillStyle = playerSeq.includes(i) ? 'rgba(51,255,102,0.15)' : 'rgba(255,255,255,0.05)'
+          cx.fillRect(sx, 150, 60, 60); cx.strokeStyle = 'rgba(255,255,255,0.2)'; cx.strokeRect(sx, 150, 60, 60)
+          cx.fillStyle = PALETTE.white; cx.font = '28px serif'; cx.textAlign = 'center'; cx.fillText(s, sx + 30, 192); cx.textAlign = 'left'
+        })
+        cx.fillStyle = PALETTE.white; cx.font = '13px Inter'; cx.fillText(`Reproduisez la séquence (${playerSeq.length}/${seqLen})`, 90, 300)
+      }
+
+      if (timer >= dur && !done) {
+        done = true; const score = 20
+        result.textContent = 'Score: ' + score; result.style.opacity = '1'
+        setTimeout(() => { wrap.remove(); resolve({ score, success: false }) }, 900)
+      } else requestAnimationFrame(loop)
+    }
+    requestAnimationFrame(loop)
+  })
+}
+
+// ══════════════════════════════════════════════════════════════
 // REGISTRY — map minigame type to play function
 // ══════════════════════════════════════════════════════════════
 const GAMES = {
   chance: playHerbo,
-  bluff: playHerbo,
+  bluff: playNegotiate,
   observation: playRunes,
-  logique: playRunes,
+  logique: playPuzzle,
   finesse: playEquilibre,
   vigueur: playCombat,
   esprit: playSangFroid,
   perception: playTraces,
+  archery: playArchery,
+  fishing: playFishing,
+  stealth: playStealth,
+  divination: playDivination,
+  negotiate: playNegotiate,
+  puzzle: playPuzzle,
 }
 
 /**
