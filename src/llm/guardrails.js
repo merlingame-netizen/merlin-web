@@ -7,7 +7,7 @@ const MIN_TEXT_LENGTH = 30
 const MAX_TEXT_LENGTH = 250
 const MIN_TITLE_LENGTH = 3
 const MAX_TITLE_LENGTH = 60
-const REPETITION_WINDOW = 15
+const REPETITION_WINDOW = 5
 
 let _recentTexts = []
 
@@ -86,7 +86,7 @@ function _isRepetitive(text) {
     const prevWords = new Set(prev.toLowerCase().split(/\s+/))
     const intersection = [...words].filter(w => prevWords.has(w) && w.length > 3)
     const similarity = intersection.length / Math.max(words.size, 1)
-    if (similarity > 0.5) return true
+    if (similarity > 0.65) return true
   }
   return false
 }

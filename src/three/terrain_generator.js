@@ -3,9 +3,13 @@
 
 import * as THREE from 'three'
 
+// Random seed per run (makes terrain different each game)
+let _seed = Math.floor(Math.random() * 100000)
+export function setTerrainSeed(s) { _seed = s }
+
 // Simple 2D noise (value noise with smoothstep)
 function _hash(x, y) {
-  let h = x * 374761393 + y * 668265263
+  let h = (x + _seed) * 374761393 + (y + _seed * 7) * 668265263
   h = (h ^ (h >> 13)) * 1274126177
   return (h & 0x7fffffff) / 0x7fffffff
 }

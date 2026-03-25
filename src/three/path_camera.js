@@ -20,7 +20,7 @@ const PATH_PROFILES = {
 const ENCOUNTER_POINTS = Array.from({ length: 25 }, (_, i) => 0.03 + i * 0.035)
 
 const EYE_HEIGHT = 1.7
-const WALK_SPEED = 0.015 // 50% faster — ~1.1 min for full path — ~2.3s between encounters
+const WALK_SPEED = 0.035 // Fast walk — ~30s full path — ~4s between encounters
 const DECEL_DURATION = 0.6
 const ACCEL_DURATION = 0.5
 const BOB_VERTICAL = 0.05

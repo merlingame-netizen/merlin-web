@@ -495,12 +495,8 @@ export class GameScene3D {
     // 4. Setup raycasting for choice selection on the 3D card
     this._setupCardRaycast(card)
 
-    // 5. DOM fallback: if raycasting fails after 1.5s, show slim choice bar
-    this._choiceFallbackTimer = setTimeout(() => {
-      if (this._encounterActive && !this._choiceMade) {
-        this._showDOMChoiceFallback(card)
-      }
-    }, 1500)
+    // 5. Always show slim choice bar at bottom (primary UI, not just fallback)
+    this._showDOMChoiceFallback(card)
   }
 
   /** Raycasting for clicking choices on the 3D card */
