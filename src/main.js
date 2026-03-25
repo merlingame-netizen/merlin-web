@@ -584,13 +584,13 @@ async function startFirstRun() {
   // Show loading screen while LLM prepares cards
   _showLoadingScreen()
 
-  // Pre-generate scenario + 5 cards (race with 6s timeout)
+  // Pre-generate scenario + 2 cards (sequential to avoid Groq rate limit)
   clearScenario()
-  const llmReady = Promise.allSettled([
-    generateScenario(getState()),
-    prewarmMultiple(getState(), 5),
-  ])
-  await Promise.race([llmReady, new Promise(r => setTimeout(r, 6000))])
+  const llmReady = (async () => {
+    await generateScenario(getState()).catch(e => console.warn('[Scenario] Init:', e?.message))
+    await prewarmMultiple(getState(), 2).catch(e => console.warn('[Prewarm] Init:', e?.message))
+  })()
+  await Promise.race([llmReady, new Promise(r => setTimeout(r, 8000))])
   _hideLoadingScreen()
 
   // Wire encounter callback: PathCamera stops → draw next card
