@@ -599,6 +599,198 @@ function _glow(pos, hFn) {
   return g
 }
 
+// ── NEW ASSETS (Phase 6) ──
+
+function _well(pos, hFn) {
+  const g = new THREE.Group()
+  // Stone circle base
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2
+    const stone = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.4, 0.15), new THREE.MeshStandardMaterial({ color: 0x6a6a60 }))
+    stone.position.set(Math.cos(a) * 0.4, 0.2, Math.sin(a) * 0.4)
+    stone.rotation.y = a; g.add(stone)
+  }
+  // Water surface
+  const water = new THREE.Mesh(new THREE.CircleGeometry(0.35, 8), new THREE.MeshStandardMaterial({ color: 0x2244aa, transparent: true, opacity: 0.5 }))
+  water.rotation.x = -Math.PI / 2; water.position.y = 0.15; g.add(water)
+  g.position.copy(pos); g.position.y = hFn(pos.x, pos.z); return g
+}
+
+function _altar(pos, hFn) {
+  const g = new THREE.Group()
+  const slab = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.2, 0.7), new THREE.MeshStandardMaterial({ color: 0x888880 }))
+  slab.position.y = 0.7; g.add(slab)
+  // Legs
+  for (const [x, z] of [[-0.4, -0.25], [0.4, -0.25], [-0.4, 0.25], [0.4, 0.25]]) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.6, 5), new THREE.MeshStandardMaterial({ color: 0x777770 }))
+    leg.position.set(x, 0.35, z); g.add(leg)
+  }
+  // Offering bowl
+  const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 4, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x664422 }))
+  bowl.position.set(0, 0.85, 0); g.add(bowl)
+  g.position.copy(pos); g.position.y = hFn(pos.x, pos.z); return g
+}
+
+function _rune_stone(pos, hFn) {
+  const g = new THREE.Group()
+  const stone = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.2, 0.15), new THREE.MeshStandardMaterial({ color: 0x7a7a70 }))
+  stone.position.y = 0.6; g.add(stone)
+  // Glowing rune line
+  const glow = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.3), new THREE.MeshBasicMaterial({ color: 0x33ff66, transparent: true, opacity: 0.4 }))
+  glow.position.set(0, 0.8, 0.08); g.add(glow)
+  g.position.copy(pos); g.position.y = hFn(pos.x, pos.z); return g
+}
+
+function _torch(pos, hFn) {
+  const g = new THREE.Group()
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 1.5, 5), new THREE.MeshStandardMaterial({ color: 0x5a4a30 }))
+  pole.position.y = 0.75; g.add(pole)
+  // Flame
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.2, 5), new THREE.MeshBasicMaterial({ color: 0xff8833 }))
+  flame.position.y = 1.6; g.add(flame)
+  const light = new THREE.PointLight(0xff8833, 0.8, 6)
+  light.position.y = 1.6; g.add(light)
+  g.position.copy(pos); g.position.y = hFn(pos.x, pos.z); return g
+}
+
+function _sacred_tree(pos, hFn) {
+  const g = new THREE.Group()
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 3, 7), new THREE.MeshStandardMaterial({ color: 0x5a4a30 }))
+  trunk.position.y = 1.5; g.add(trunk)
+  const canopy = new THREE.Mesh(new THREE.IcosahedronGeometry(1.8, 1), new THREE.MeshStandardMaterial({ color: 0x2a6a2a }))
+  canopy.position.y = 3.5; g.add(canopy)
+  // Glowing moss
+  const moss = new THREE.Mesh(new THREE.SphereGeometry(0.35, 5, 3), new THREE.MeshBasicMaterial({ color: 0x44cc66, transparent: true, opacity: 0.3 }))
+  moss.position.set(0.2, 0.8, 0.2); g.add(moss)
+  g.position.copy(pos); g.position.y = hFn(pos.x, pos.z); return g
+}
+
+function _wolf(pos, hFn) {
+  const g = new THREE.Group()
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.4, 0.35), new THREE.MeshStandardMaterial({ color: 0x555555 }))
+  body.position.y = 0.5; g.add(body)
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.25, 0.3), new THREE.MeshStandardMaterial({ color: 0x555555 }))
+  head.position.set(0.45, 0.65, 0); g.add(head)
+  // Eyes
+  for (const z of [-0.08, 0.08]) {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.025, 4, 3), new THREE.MeshBasicMaterial({ color: 0xffaa00 }))
+    eye.position.set(0.58, 0.7, z); g.add(eye)
+  }
+  g.position.copy(pos); g.position.y = hFn(pos.x, pos.z); return g
+}
+
+function _deer(pos, hFn) {
+  const g = new THREE.Group()
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.5, 0.3), new THREE.MeshStandardMaterial({ color: 0x8a6a40 }))
+  body.position.y = 0.7; g.add(body)
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), new THREE.MeshStandardMaterial({ color: 0x8a6a40 }))
+  head.position.set(0.4, 0.95, 0); g.add(head)
+  // Antlers
+  for (const z of [-0.1, 0.1]) {
+    const antler = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.01, 0.4, 3), new THREE.MeshStandardMaterial({ color: 0x6a5a30 }))
+    antler.position.set(0.4, 1.2, z); antler.rotation.z = z > 0 ? -0.4 : 0.4; g.add(antler)
+  }
+  g.position.copy(pos); g.position.y = hFn(pos.x, pos.z); return g
+}
+
+function _portal(pos, hFn) {
+  const g = new THREE.Group()
+  // Stone arch
+  for (const x of [-0.5, 0.5]) {
+    const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2, 0.2), new THREE.MeshStandardMaterial({ color: 0x6a6a60 }))
+    pillar.position.set(x, 1, 0); g.add(pillar)
+  }
+  const lintel = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.2, 0.2), new THREE.MeshStandardMaterial({ color: 0x6a6a60 }))
+  lintel.position.y = 2; g.add(lintel)
+  // Portal glow
+  const glow = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.8), new THREE.MeshBasicMaterial({ color: 0x4488ff, transparent: true, opacity: 0.15, side: THREE.DoubleSide }))
+  glow.position.y = 1; g.add(glow)
+  const light = new THREE.PointLight(0x4488ff, 0.5, 5)
+  light.position.y = 1; g.add(light)
+  g.position.copy(pos); g.position.y = hFn(pos.x, pos.z); return g
+}
+
+function _waterfall(pos, hFn) {
+  const g = new THREE.Group()
+  // Rock wall
+  const wall = new THREE.Mesh(new THREE.BoxGeometry(2, 2.5, 0.5), new THREE.MeshStandardMaterial({ color: 0x5a5a50 }))
+  wall.position.y = 1.25; g.add(wall)
+  // Water stream (vertical plane)
+  const stream = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 2), new THREE.MeshBasicMaterial({ color: 0x5588cc, transparent: true, opacity: 0.4 }))
+  stream.position.set(0, 1.2, 0.26); g.add(stream)
+  // Pool
+  const pool = new THREE.Mesh(new THREE.CircleGeometry(0.8, 8), new THREE.MeshBasicMaterial({ color: 0x3366aa, transparent: true, opacity: 0.3 }))
+  pool.rotation.x = -Math.PI / 2; pool.position.set(0, 0.05, 0.5); g.add(pool)
+  g.position.copy(pos); g.position.y = hFn(pos.x, pos.z); return g
+}
+
+function _cauldron(pos, hFn) {
+  const g = new THREE.Group()
+  const pot = new THREE.Mesh(new THREE.SphereGeometry(0.3, 6, 4, 0, Math.PI * 2, 0, Math.PI * 0.7), new THREE.MeshStandardMaterial({ color: 0x333333 }))
+  pot.position.y = 0.3; g.add(pot)
+  // Green liquid
+  const liquid = new THREE.Mesh(new THREE.CircleGeometry(0.22, 6), new THREE.MeshBasicMaterial({ color: 0x44cc44, transparent: true, opacity: 0.5 }))
+  liquid.rotation.x = -Math.PI / 2; liquid.position.y = 0.45; g.add(liquid)
+  // Steam glow
+  const steam = new THREE.PointLight(0x44cc44, 0.3, 3)
+  steam.position.y = 0.6; g.add(steam)
+  g.position.copy(pos); g.position.y = hFn(pos.x, pos.z); return g
+}
+
+function _lantern(pos, hFn) {
+  const g = new THREE.Group()
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, 1.8, 4), new THREE.MeshStandardMaterial({ color: 0x444444 }))
+  pole.position.y = 0.9; g.add(pole)
+  // Lantern box
+  const box = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.15, 0.12), new THREE.MeshBasicMaterial({ color: 0xffcc44, transparent: true, opacity: 0.6 }))
+  box.position.y = 1.8; g.add(box)
+  const light = new THREE.PointLight(0xffcc44, 0.6, 5)
+  light.position.y = 1.8; g.add(light)
+  g.position.copy(pos); g.position.y = hFn(pos.x, pos.z); return g
+}
+
+function _grave(pos, hFn) {
+  const g = new THREE.Group()
+  const stone = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.6, 0.08), new THREE.MeshStandardMaterial({ color: 0x5a5a55 }))
+  stone.position.y = 0.3; stone.rotation.x = -0.1; g.add(stone)
+  // Cross
+  const cross = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.15, 0.04), new THREE.MeshStandardMaterial({ color: 0x888880 }))
+  cross.position.y = 0.65; g.add(cross)
+  g.position.copy(pos); g.position.y = hFn(pos.x, pos.z); return g
+}
+
+function _wagon(pos, hFn) {
+  const g = new THREE.Group()
+  const bed = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.15, 0.6), new THREE.MeshStandardMaterial({ color: 0x6a5a30 }))
+  bed.position.y = 0.4; g.add(bed)
+  // Wheels
+  for (const [x, z] of [[-0.45, -0.35], [-0.45, 0.35], [0.45, -0.35], [0.45, 0.35]]) {
+    const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.03, 4, 8), new THREE.MeshStandardMaterial({ color: 0x444444 }))
+    wheel.position.set(x, 0.15, z); wheel.rotation.y = Math.PI / 2; g.add(wheel)
+  }
+  g.position.copy(pos); g.position.y = hFn(pos.x, pos.z); return g
+}
+
+function _spirit(pos, hFn) {
+  const g = new THREE.Group()
+  const body = new THREE.Mesh(new THREE.ConeGeometry(0.2, 1.2, 6), new THREE.MeshBasicMaterial({ color: 0x88aaff, transparent: true, opacity: 0.25 }))
+  body.position.y = 0.8; g.add(body)
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 5, 4), new THREE.MeshBasicMaterial({ color: 0xaaccff, transparent: true, opacity: 0.3 }))
+  head.position.y = 1.5; g.add(head)
+  const light = new THREE.PointLight(0x88aaff, 0.4, 4)
+  light.position.y = 1; g.add(light)
+  g.position.copy(pos); g.position.y = hFn(pos.x, pos.z); return g
+}
+
+function _throne(pos, hFn) {
+  const g = new THREE.Group()
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.1, 0.5), new THREE.MeshStandardMaterial({ color: 0x5a4a30 }))
+  seat.position.y = 0.5; g.add(seat)
+  const back = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 0.08), new THREE.MeshStandardMaterial({ color: 0x5a4a30 }))
+  back.position.set(0, 0.9, -0.21); g.add(back)
+  g.position.copy(pos); g.position.y = hFn(pos.x, pos.z); return g
+}
+
 // ── Builder registry ──
 
 const BUILDERS = {
@@ -625,6 +817,22 @@ const BUILDERS = {
   bird: _bird,
   totem: _totem,
   glow: _glow,
+  // Phase 6 new assets
+  well: _well,
+  altar: _altar,
+  rune_stone: _rune_stone,
+  torch: _torch,
+  sacred_tree: _sacred_tree,
+  wolf: _wolf,
+  deer: _deer,
+  portal: _portal,
+  waterfall: _waterfall,
+  cauldron: _cauldron,
+  lantern: _lantern,
+  grave: _grave,
+  wagon: _wagon,
+  spirit: _spirit,
+  throne: _throne,
 }
 
 export function spawnEventAsset(card, position, scene, heightFn) {
