@@ -831,17 +831,33 @@ async function startFirstRun() {
     return false
   })
 
-  // Feed LLM results to book cinematic as they arrive
+  // Feed LLM results progressively as they arrive
   scenarioPromise.then(success => {
-    if (success) {
-      bookCinematic.onTitleReady(getScenarioTitle() || 'Brocéliande')
-      bookCinematic.onIntroReady(getScenarioIntro() || 'La forêt attend votre venue...')
-      bookCinematic.onPathReady(getPathEvents())
-    } else {
-      bookCinematic.onTitleReady('Brocéliande')
-      bookCinematic.onIntroReady('Les brumes de Brocéliande se lèvent, dévoilant les racines noueuses des chênes millénaires. Le sentier s\'ouvre devant toi.')
-      bookCinematic.onPathReady([])
-    }
+    const title = success ? (getScenarioTitle() || 'Brocéliande') : 'Brocéliande'
+    const intro = success
+      ? (getScenarioIntro() || 'Les brumes de Brocéliande se lèvent lentement, dévoilant les racines noueuses des chênes millénaires.')
+      : 'Les brumes de Brocéliande se lèvent lentement, dévoilant les racines noueuses des chênes millénaires. Le sentier s\'ouvre devant toi, étroit et sinueux. Merlin murmure dans le vent.'
+
+    // Progress: title ready
+    bookCinematic.onTitleReady(title)
+    // Progress: intro ready (simulate progressive writing)
+    bookCinematic.onIntroReady(intro)
+    // Simulate streaming: increment scenario progress over 3s
+    let streamProgress = 0
+    const streamInterval = setInterval(() => {
+      streamProgress += 0.05
+      bookCinematic.onIntroProgress(Math.min(1, streamProgress))
+      if (streamProgress >= 1) clearInterval(streamInterval)
+    }, 150)
+
+    // Progress: path events
+    if (success) bookCinematic.onPathReady(getPathEvents())
+    else bookCinematic.onPathReady([])
+  }).catch(() => {
+    bookCinematic.onTitleReady('Brocéliande')
+    bookCinematic.onIntroReady('La forêt attend votre venue...')
+    bookCinematic.onIntroProgress(1)
+    bookCinematic.onPathReady([])
   })
 
   // Prewarm cards in background
