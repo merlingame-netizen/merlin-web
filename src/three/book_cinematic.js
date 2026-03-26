@@ -64,6 +64,9 @@ export class BookCinematic {
     this._skipBtn.style.cssText += ';bottom:12px;right:12px;left:auto;transform:none;font-size:11px;padding:5px 10px;display:block;'
     this._skipBtn.addEventListener('click', () => this.skip())
 
+    // Cache mobile state at start (don't switch layout mid-cinematic on resize)
+    this._isMobile = this._W < 700
+
     this._raf = 0; this._lastTime = performance.now(); this._animate()
   }
 
@@ -418,7 +421,7 @@ export class BookCinematic {
     cx.fillStyle = '#080810'; cx.fillRect(0, 0, W, H)
 
     // Layout — responsive: side-by-side on wide, stacked on mobile
-    const isMobile = W < 700
+    const isMobile = this._isMobile
     const gap = isMobile ? 0 : W * 0.02
     const totalW = W * (isMobile ? 0.94 : 0.88)
     const leftW = isMobile ? totalW : totalW * 0.55

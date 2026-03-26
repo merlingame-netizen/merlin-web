@@ -102,9 +102,9 @@ export class TerrainGenerator {
         // Smooth blend: cubic falloff for gentle edges
         const raw = Math.max(0, 1 - dist / 4.0)
         const blend = raw * raw * (3 - 2 * raw) // smoothstep
-        // Gentle flattening — raise path slightly above terrain base
+        // Gentle flattening — raise path above terrain base, clamp non-negative
         const flatFactor = blend * 0.55
-        pos.array[i * 3 + 1] = baseY * (1 - flatFactor) + blend * 0.2
+        pos.array[i * 3 + 1] = Math.max(0, baseY * (1 - flatFactor) + blend * 0.2)
 
         const t = Math.min(1, Math.max(0, (baseY + profile.amplitude * 0.5) / (profile.amplitude * 1.5)))
         const baseC = t < 0.5
