@@ -114,11 +114,27 @@ function _createFaceTexture(card, parchment, choices) {
     cx.lineWidth = 1
     cx.strokeRect(14, 14, texW - 28, texH - 28)
 
-    // Faction header tint
+    // Faction header gradient tint (visible but subtle)
+    const headerGrad = cx.createLinearGradient(0, 0, 0, texH * 0.14)
+    headerGrad.addColorStop(0, fCol + '30') // 19% opacity
+    headerGrad.addColorStop(1, 'rgba(0,0,0,0)')
+    cx.fillStyle = headerGrad
+    cx.fillRect(14, 14, texW - 28, texH * 0.14)
+
+    // Faction watermark symbol (large, faded, top-right corner)
+    const FACTION_SYMBOLS = {
+      druides: '🌿', anciens: '⬟', korrigans: '✦', niamh: '◈',
+      ankou: '☠', guerriers: '⚔', pretresses: '☽', marins: '⚓',
+    }
+    const fSymbol = FACTION_SYMBOLS[card._faction] || '◆'
     cx.fillStyle = fCol
-    cx.globalAlpha = 0.1
-    cx.fillRect(14, 14, texW - 28, texH * 0.11)
+    cx.globalAlpha = 0.08
+    cx.font = `${Math.round(texH * 0.15)}px serif`
+    cx.textAlign = 'right'
+    cx.textBaseline = 'top'
+    cx.fillText(fSymbol, texW - 30, 20)
     cx.globalAlpha = 1
+    cx.textAlign = 'left'
 
     // Title — dark brown, serif, medieval feel
     cx.fillStyle = '#3a2810'
