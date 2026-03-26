@@ -451,11 +451,17 @@ export class GameScene3D {
 
     // Use scenario path_events (from LLM) if available, else fallback pool
     const pathEvents = getPathEvents()
-    const fallbackPool = [
-      'menhir', 'dolmen', 'sacred_tree', 'altar', 'cairn',
-      'torch', 'lantern', 'well', 'rune_stone', 'totem',
-      'waterfall', 'cauldron', 'portal', 'spirit', 'deer',
-    ]
+    // Biome-aware fallback pool (events drive the map, not the reverse)
+    const BIOME_ASSETS = {
+      broceliande: ['ancient_tree', 'cairn', 'sacred_tree', 'mushrooms', 'flower_bush', 'menhir', 'dolmen', 'fountain', 'campfire', 'deer'],
+      landes: ['menhir', 'cairn', 'stone_circle', 'rune_stone', 'torch', 'altar', 'well', 'dolmen', 'lantern', 'spirit'],
+      cotes: ['ruins', 'boat', 'waterfall', 'cairn', 'rune_stone', 'lantern', 'totem', 'well', 'bird', 'torch'],
+      monts: ['cairn', 'cave', 'rune_stone', 'altar', 'menhir', 'torch', 'wolf', 'spirit', 'campfire', 'dolmen'],
+      ile_sein: ['menhir', 'altar', 'rune_stone', 'flower_bush', 'fountain', 'spirit', 'lantern', 'cairn', 'totem', 'bird'],
+      huelgoat: ['ancient_tree', 'mushrooms', 'cairn', 'stream', 'sacred_tree', 'campfire', 'fairy', 'deer', 'flower_bush', 'cave'],
+      iles_mystiques: ['portal', 'cauldron', 'fairy', 'spirit', 'throne', 'rune_stone', 'altar', 'lantern', 'waterfall', 'flower_bush'],
+    }
+    const fallbackPool = BIOME_ASSETS[biomeKey] || BIOME_ASSETS.broceliande
 
     const encounterPoints = Array.from({ length: 25 }, (_, i) => 0.03 + i * 0.035)
     const count = Math.min(encounterPoints.length, 12)
@@ -477,7 +483,7 @@ export class GameScene3D {
       assetPos.y = heightFn(assetPos.x, assetPos.z) ?? 0
 
       const asset = spawnEventAsset(
-        { tags: [assetTag], scene_tag: assetTag, _faction: 'druides' },
+        { ...event, tags: [assetTag], scene_tag: assetTag, _faction: event?.mood || 'druides' },
         assetPos, scene, heightFn
       )
       if (asset) this._prePlacedAssets.push(asset)

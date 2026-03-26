@@ -11,6 +11,27 @@ function _seededRandom(seed) {
   return () => { s = (s * 16807 + 0) % 2147483647; return (s - 1) / 2147483646 }
 }
 
+// Spatial collision grid — prevents props overlapping
+class _CollisionGrid {
+  constructor(cellSize = 4) { this._cells = new Map(); this._cs = cellSize }
+  _key(x, z) { return `${Math.floor(x / this._cs)},${Math.floor(z / this._cs)}` }
+  occupied(x, z, r) {
+    const cx = Math.floor(x / this._cs), cz = Math.floor(z / this._cs)
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
+      const items = this._cells.get(`${cx + dx},${cz + dz}`)
+      if (items) for (const it of items) {
+        if (Math.hypot(x - it.x, z - it.z) < r + it.r) return true
+      }
+    }
+    return false
+  }
+  add(x, z, r) {
+    const k = this._key(x, z)
+    if (!this._cells.has(k)) this._cells.set(k, [])
+    this._cells.get(k).push({ x, z, r })
+  }
+}
+
 // ── Wind vertex shader for grass/fern (opaque solid 3D tufts) ────────────
 const WIND_VERTEX = `
   uniform float uTime;
@@ -363,6 +384,7 @@ export class BiomeProps {
 
     // Track previous trunk InstancedMesh matrices for pairing canopy
     let lastTrunkMatrices = null
+    const collisionGrid = new _CollisionGrid(4)
 
     for (let ci = 0; ci < configs.length; ci++) {
       const config = configs[ci]
@@ -419,14 +441,18 @@ export class BiomeProps {
         }
       } else {
         const matrices = []
-        for (let i = 0; i < config.count * 2 && placed < config.count; i++) {
+        const collisionR = isTrunk ? 1.5 : (config.type === 'rock' || config.type === 'menhir' ? 1.2 : 0.8)
+        for (let i = 0; i < config.count * 4 && placed < config.count; i++) {
           const x = (rng() - 0.5) * config.spread * 2
           const z = (rng() - 0.5) * config.spread * 2
 
           if (pathCurve) {
             const dist = _distToPath(x, z, pathCurve)
-            if (dist < 2.0) continue
+            if (dist < 3.0) continue
           }
+
+          // Collision check — prevent prop overlap
+          if (collisionGrid.occupied(x, z, collisionR)) continue
 
           const y = heightFn(x, z)
           const scale = config.scaleMin + rng() * (config.scaleMax - config.scaleMin)
@@ -439,6 +465,7 @@ export class BiomeProps {
           dummy.updateMatrix()
           instanced.setMatrixAt(placed, dummy.matrix)
           matrices.push(dummy.matrix.clone())
+          collisionGrid.add(x, z, collisionR * scale)
           placed++
         }
 
