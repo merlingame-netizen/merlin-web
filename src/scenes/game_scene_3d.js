@@ -854,7 +854,7 @@ export class GameScene3D {
     // Create floating choice buttons that update position each frame
     const container = document.createElement('div')
     container.className = 'g3d-projected-choices'
-    container.style.cssText = 'position:fixed;inset:0;z-index:30;pointer-events:none;'
+    container.style.cssText = 'position:fixed;inset:0;z-index:45;pointer-events:none;'
 
     choices.slice(0, 3).forEach((c, i) => {
       const btn = document.createElement('button')
