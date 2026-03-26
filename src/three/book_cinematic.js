@@ -102,20 +102,21 @@ export class BookCinematic {
   // Build an organic, non-straight path of dots (like a real forest trail)
   _buildOrganicPath(count) {
     const dots = []
-    // Seed a natural-looking path: starts bottom, winds upward
     let cx = 0.45 + Math.random() * 0.1
     let cy = 0.88
+    let prevAngle = -Math.PI / 2 // start heading upward
 
     for (let i = 0; i < count; i++) {
       dots.push({ x: cx, y: cy, glowing: false })
-      // Organic movement — sine waves + random offsets (never straight)
-      const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.2 // mostly upward
-      const step = (0.55 / count) + (Math.random() - 0.5) * 0.04
-      cx += Math.cos(angle) * step * 0.8
-      cy += Math.sin(angle) * step * 1.2
-      // Clamp to scroll area
-      cx = Math.max(0.15, Math.min(0.85, cx))
-      cy = Math.max(0.1, Math.min(0.9, cy))
+      // Organic movement — smoothed direction changes (no sharp reversals)
+      const angleJitter = (Math.random() - 0.5) * 0.9
+      prevAngle = prevAngle * 0.7 + (-Math.PI / 2 + angleJitter) * 0.3 // blend toward upward
+      const step = (0.6 / count) + (Math.random() - 0.5) * 0.02
+      const nx = cx + Math.cos(prevAngle) * step * 0.7
+      const ny = cy + Math.sin(prevAngle) * step * 1.1
+      // Clamp + ensure no self-crossing (always move upward)
+      cx = Math.max(0.12, Math.min(0.88, nx))
+      cy = Math.max(0.08, Math.min(cy - 0.01, ny)) // force upward progress
     }
     return dots
   }
@@ -310,6 +311,21 @@ export class BookCinematic {
           cx.stroke()
         }
       }
+    }
+
+    // Subtle side trails (short branches off main path — cartographic detail)
+    if (segsToShow > 2) {
+      cx.strokeStyle = 'rgba(90,70,40,0.12)'; cx.lineWidth = 1; cx.setLineDash([3, 4])
+      for (let i = 1; i < Math.min(segsToShow, dots.length - 1); i += 3) {
+        const d = dots[i]
+        const px = x + margin + d.x * (w - margin * 2)
+        const py = y + 25 + d.y * (h - 45)
+        const side = i % 2 === 0 ? 1 : -1
+        cx.beginPath(); cx.moveTo(px, py)
+        cx.lineTo(px + side * (12 + i * 2), py - 5 + i * 1.5)
+        cx.stroke()
+      }
+      cx.setLineDash([])
     }
 
     // Draw dots — glow when trail reaches them
