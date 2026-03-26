@@ -1181,7 +1181,7 @@ html, body {
   .g3d-slim-bar { padding: 10px 6px max(env(safe-area-inset-bottom, 8px), 8px); gap: 4px; }
   .g3d-slim-choice { padding: 14px 8px; font-size: 12px; min-height: 48px; }
   .g3d-intro-actions { padding: 12px 8px; gap: 6px; }
-  .menu-v2-title { font-size: 40px; }
+  .menu-title { font-size: 38px; letter-spacing: 3px; }
   .mc-wrap { height: 90vh; max-height: none; border-radius: 0; }
 }
 
@@ -1274,41 +1274,55 @@ html, body {
 }
 .g3d-intro-go:active { transform: scale(.95); background: rgba(51,255,102,.15); border-color: rgba(51,255,102,.4); }
 
-/* === MENU V2 === */
-.menu-v2 {
+/* === MENU v3 — Celtic cohérent === */
+.menu-main {
   position: fixed; inset: 0; z-index: 40;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 24px; gap: 8px;
-  background: linear-gradient(to top, rgba(0,0,0,.7) 0%, rgba(0,0,0,.25) 50%, transparent 100%);
+  padding: 24px; gap: 0;
+  background: radial-gradient(ellipse at 50% 80%, rgba(0,0,0,.6) 0%, rgba(0,0,0,.2) 50%, transparent 100%);
+  pointer-events: none;
 }
-.menu-v2-title {
-  font: 52px/1 'VT323', monospace; color: #33ff66;
-  text-shadow: 0 0 20px rgba(51,255,102,.3), 0 0 40px rgba(51,255,102,.1);
-  letter-spacing: 3px;
+.menu-main > * { pointer-events: auto; }
+
+.menu-title-group { text-align: center; margin-bottom: 32px; }
+.menu-title {
+  font: 56px/1 Georgia, 'Times New Roman', serif; color: #ffbe33;
+  text-shadow: 0 0 30px rgba(255,190,51,.25), 0 2px 8px rgba(0,0,0,.5);
+  letter-spacing: 6px; margin: 0;
 }
-.menu-v2-sub {
-  font: 13px/1 'Inter', sans-serif; color: rgba(255,255,255,.3);
-  letter-spacing: 2px; margin-bottom: 28px;
+.menu-subtitle {
+  font: italic 14px/1 Georgia, serif; color: rgba(200,210,180,.45);
+  letter-spacing: 3px; margin: 8px 0 0;
 }
-.menu-v2-btns { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 280px; }
-.mv2-btn {
-  padding: 13px 20px; border-radius: 10px;
-  background: rgba(10,26,10,.6); backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,.08);
-  color: rgba(255,255,255,.8); font: 15px/1 'VT323', monospace;
-  cursor: pointer; transition: all .15s; text-align: center;
+
+.menu-actions { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 260px; }
+.menu-btn {
+  padding: 14px 20px; border-radius: 6px;
+  background: rgba(8,20,8,.65); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,190,51,.12);
+  color: rgba(240,230,200,.85); font: 16px/1 Georgia, serif;
+  cursor: pointer; transition: all .2s; text-align: center;
+  letter-spacing: 0.5px;
 }
-.mv2-btn:active { transform: scale(.96); background: rgba(77,217,204,.1); border-color: rgba(77,217,204,.3); }
-.mv2-btn-primary { border-color: rgba(51,255,102,.25); color: #33ff66; }
-.mv2-btn-primary:active { border-color: rgba(51,255,102,.5); background: rgba(51,255,102,.08); }
-.mv2-btn-merlin { border-color: rgba(255,191,51,.2); color: rgba(255,191,51,.7); }
-.mv2-btn-merlin:active { border-color: rgba(255,191,51,.4); background: rgba(255,191,51,.08); }
-.menu-v2-lore {
-  font: italic 13px/1.4 Georgia, serif; color: rgba(200,210,180,0.4);
-  margin-top: 20px; max-width: 320px; text-align: center;
-  transition: opacity 0.5s; min-height: 36px;
+.menu-btn:hover {
+  background: rgba(255,190,51,.08); border-color: rgba(255,190,51,.3);
+  transform: translateY(-1px); box-shadow: 0 4px 20px rgba(255,190,51,.1);
 }
-.menu-v2-footer { font: 10px/1 'Inter', sans-serif; color: rgba(255,255,255,.15); margin-top: 12px; }
+.menu-btn:active { transform: scale(.97); }
+.menu-btn-play {
+  border-color: rgba(255,190,51,.25); color: #ffbe33;
+  font-weight: bold; font-size: 17px;
+}
+.menu-btn-play:hover { border-color: rgba(255,190,51,.5); box-shadow: 0 0 25px rgba(255,190,51,.15); }
+.menu-btn-secondary { color: rgba(200,210,180,.6); border-color: rgba(255,255,255,.06); }
+.menu-btn-secondary:hover { color: rgba(200,210,180,.9); border-color: rgba(200,210,180,.2); }
+
+.menu-lore {
+  font: italic 13px/1.5 Georgia, serif; color: rgba(200,210,180,.35);
+  margin-top: 28px; max-width: 320px; text-align: center;
+  transition: opacity 0.6s; min-height: 40px;
+}
+.menu-version { font: 10px/1 Georgia, serif; color: rgba(255,255,255,.1); margin-top: 16px; }
 
 /* === MERLIN CHAT === */
 .scene-merlin-chat { position: fixed; inset: 0; z-index: 45; background: rgba(0,0,0,.88); display: flex; align-items: center; justify-content: center; }
