@@ -15,7 +15,9 @@ export class RenderManager {
     this._canvas = canvas
     this._renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false })
     this._renderer.setSize(window.innerWidth, window.innerHeight)
-    this._renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    // Mobile: cap at 1.5x for perf. Desktop: cap at 2x
+    const isMobile = window.innerWidth < 768
+    this._renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2))
     this._renderer.outputColorSpace = THREE.SRGBColorSpace
     this._renderer.toneMapping = THREE.ACESFilmicToneMapping
     this._renderer.toneMappingExposure = 1.4
