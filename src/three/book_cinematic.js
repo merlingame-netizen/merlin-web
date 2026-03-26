@@ -559,7 +559,12 @@ export class BookCinematic {
     this._raf = requestAnimationFrame(() => this._animate())
   }
 
-  skip() { this._cleanup(); this._onComplete?.() }
+  skip() {
+    // Trigger 3D scene before cleanup (skip must also start the game)
+    if (this._onDiveStart) { this._onDiveStart(); this._onDiveStart = null }
+    this._cleanup()
+    this._onComplete?.()
+  }
   isDone() { return this._state === STATES.DONE }
 
   _cleanup() {
