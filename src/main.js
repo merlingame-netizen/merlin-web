@@ -9,6 +9,7 @@ import { MenuScene3D } from './three/menu_scene_3d.js'
 import { checkLLMHealth, onStatusChange, prewarmCard, prewarmMultiple, getPrewarmedCardOrFallback, getPrewarmedCard, clearPrewarmedCard } from './llm/prewarm.js'
 import { generateScenario, getNextScenarioCard, hasCardsRemaining, cardsRemaining, prefetchNextScenario, clearScenario } from './llm/scenario_generator.js'
 import { getState, dispatch } from './game/store.js'
+import { FACTIONS, FACTION_INFO } from './game/constants.js'
 import { generateCard, generateEffects } from './llm/groq_client.js'
 import { getFallbackCard } from './data/fallback_cards.js'
 import { listSlots } from './game/save_system.js'
@@ -501,6 +502,12 @@ const gameScene3D = new GameScene3D(
         _syncRegistries()
       }
 
+      // Milestone reward every 5 cards
+      const cardsNow = getState().run?.cards_played ?? 0
+      if (cardsNow > 0 && cardsNow % 5 === 0) {
+        _showMilestoneReward(cardsNow)
+      }
+
       const newState = getState()
       if (newState.phase === 'ending') {
         // Dramatic death/victory transition
@@ -923,6 +930,53 @@ function showSaveLoadScreen() {
     router.navigate(s.phase === 'game' ? 'game' : 'hub', s)
     if (s.phase === 'game') _drawNextCard()
   }
+}
+
+function _showMilestoneReward(cardsPlayed) {
+  const overlay = document.createElement('div')
+  overlay.style.cssText = `
+    position:fixed;inset:0;z-index:80;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;pointer-events:none;
+    background:radial-gradient(ellipse at center, rgba(255,200,50,0.1) 0%, transparent 60%);
+    animation:fadeIn 0.5s;
+  `
+  const title = document.createElement('div')
+  title.textContent = `✦ Étape ${cardsPlayed}/25 atteinte ✦`
+  title.style.cssText = `color:#FFBF33;font:bold 20px 'VT323',monospace;margin-bottom:16px;text-shadow:0 0 10px rgba(255,191,51,0.4);`
+  overlay.appendChild(title)
+
+  const btnWrap = document.createElement('div')
+  btnWrap.style.cssText = 'display:flex;gap:12px;pointer-events:auto;'
+
+  const healBtn = document.createElement('button')
+  healBtn.textContent = '♥ +1 Vie'
+  healBtn.style.cssText = 'padding:10px 20px;border-radius:8px;background:rgba(4,8,4,0.9);border:1px solid #44cc44;color:#44cc44;font:14px VT323,monospace;cursor:pointer;'
+  healBtn.addEventListener('click', () => {
+    dispatch('APPLY_EFFECTS', { effects: ['HEAL_LIFE:1'], source: 'MILESTONE' })
+    _flashMessage('♥ Vie restaurée!')
+    try { SFX.lifeGain?.() } catch {}
+    overlay.remove()
+  })
+
+  const factionBtn = document.createElement('button')
+  const randomFaction = FACTIONS[Math.floor(Math.random() * FACTIONS.length)]
+  const fInfo = FACTION_INFO[randomFaction]
+  factionBtn.textContent = `${fInfo.symbol} +10 ${fInfo.label}`
+  factionBtn.style.cssText = `padding:10px 20px;border-radius:8px;background:rgba(4,8,4,0.9);border:1px solid ${fInfo.color};color:${fInfo.color};font:14px VT323,monospace;cursor:pointer;`
+  factionBtn.addEventListener('click', () => {
+    dispatch('APPLY_EFFECTS', { effects: [`SHIFT_FACTION:${randomFaction}:10`], source: 'MILESTONE' })
+    _flashMessage(`${fInfo.symbol} +10 ${fInfo.label}!`)
+    try { SFX.aspectUp?.() } catch {}
+    overlay.remove()
+  })
+
+  btnWrap.appendChild(healBtn)
+  btnWrap.appendChild(factionBtn)
+  overlay.appendChild(btnWrap)
+  document.body.appendChild(overlay)
+
+  // Auto-dismiss after 8s if no choice
+  setTimeout(() => { if (overlay.parentNode) { healBtn.click() } }, 8000)
 }
 
 function _playEndingTransition(isDefeat) {
