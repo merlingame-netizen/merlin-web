@@ -784,8 +784,7 @@ function _hideLoadingScreen() {
 async function startFirstRun() {
   SFX.confirm()
 
-  // ─── STEP 1: Hide menu immediately, book handles its own fade ───
-  _hide3D()
+  // ─── STEP 1: Hide menu DOM, DON'T pause renderer (let book take over) ───
   document.querySelectorAll('.scene-menu, .scene-menu-3d-overlay').forEach(el => el.style.display = 'none')
 
   // Skip quiz/intro — go direct to game3d with Broceliande
@@ -797,7 +796,8 @@ async function startFirstRun() {
   _difficulty = createDifficultyState()
   _syncRegistries()
 
-  // ─── STEP 2: Create book scene (while screen is black) ───
+  // ─── STEP 2: Create book scene ───
+  console.log('[Book] Creating book cinematic scene')
   const bookScene = new THREE.Scene()
   bookScene.background = new THREE.Color(0x0c0c10) // dark but not pure black
   const bookCam = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 20)
