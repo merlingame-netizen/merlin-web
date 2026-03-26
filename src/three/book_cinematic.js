@@ -154,9 +154,9 @@ export class BookCinematic {
     const ambient = new THREE.AmbientLight(0x444444, 0.5)
     this._group.add(ambient)
 
-    // ─── POSITION book — starts invisible below camera, will animate up ───
-    this._group.position.set(0, -2, 0)
-    this._group.scale.setScalar(0.01) // starts invisible
+    // ─── POSITION book — starts small at center, grows into view ───
+    this._group.position.set(0, 0, 0)
+    this._group.scale.setScalar(0.01) // starts tiny
 
     // ─── Skip button (DOM) ───
     this._skipBtn = document.createElement('button')
@@ -294,16 +294,16 @@ export class BookCinematic {
     this._t += dt / 1000
     const s = this._state
 
-    // BOOK_APPEAR: rise from below + grow to full size (3s, smooth ease-out)
+    // BOOK_APPEAR: grow from tiny center (3s, smooth ease-out)
     if (s === STATES.BOOK_APPEAR) {
       const t = Math.min(1, this._t / 3.0)
-      const ease = 1 - Math.pow(1 - t, 4) // quartic ease-out (very smooth)
-      this._group.position.y = -2 + ease * 2.0 // rises from -2 to 0
-      this._group.scale.setScalar(ease * 1.0) // grows from 0 to 1.0
-      this._group.rotation.y = (1 - ease) * 0.5 // gentle settling rotation
+      const ease = 1 - Math.pow(1 - t, 3) // cubic ease-out
+      this._group.scale.setScalar(0.01 + ease * 0.99) // 0.01 → 1.0
+      this._group.position.y = (1 - ease) * -0.3 // slight rise
+      this._group.rotation.y = (1 - ease) * 0.4
       if (t >= 1) {
-        this._group.position.y = 0
         this._group.scale.setScalar(1.0)
+        this._group.position.y = 0
         this._group.rotation.y = 0
         this._state = STATES.BOOK_OPEN; this._t = 0
       }
