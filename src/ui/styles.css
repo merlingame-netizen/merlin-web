@@ -523,24 +523,29 @@ html, body {
 .scene-game3d > * { pointer-events: auto; }
 
 .g3d-hud-top {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 10px 16px;
-  background: linear-gradient(to bottom, rgba(4,8,4,0.92) 0%, rgba(4,8,4,0.6) 60%, transparent 100%);
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 10px 14px;
+  background: linear-gradient(to bottom, rgba(4,8,4,0.92) 0%, rgba(4,8,4,0.7) 70%, transparent 100%);
   pointer-events: none;
   backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
 }
 
 .g3d-factions {
-  display: flex; gap: 8px; font-size: 0.8em; align-items: center;
+  display: flex; flex-wrap: wrap; gap: 6px 10px; font-size: 0.75em; align-items: center;
+  max-width: 50%;
 }
 .g3d-faction-pip {
-  display: flex; align-items: center; gap: 2px; position: relative;
+  display: flex; align-items: center; gap: 4px; position: relative;
+  font-size: 12px;
 }
 .g3d-faction-bar {
-  display: inline-block; height: 3px; border-radius: 2px;
-  min-width: 2px; max-width: 40px; transition: width 0.3s;
+  display: inline-block; height: 5px; border-radius: 3px;
+  min-width: 4px; max-width: 50px; transition: width 0.5s ease-out;
 }
-.g3d-info { font-size: 0.85em; display: flex; gap: 16px; }
+.g3d-info {
+  font-size: 13px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+}
 
 .g3d-center {
   flex: 1;
