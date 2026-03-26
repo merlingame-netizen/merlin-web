@@ -486,30 +486,46 @@ export class BookCinematic {
       }
     }
 
-    // === DIVE (3s) ===
+    // === DIVE (3.5s) — zoom into map, golden flash, crossfade to 3D ===
     else if (s === STATES.DIVE) {
-      const t = Math.min(1, this._t / 3), e = easeIO(t)
+      const t = Math.min(1, this._t / 3.5), e = easeIO(t)
       if (this._t < 0.05 && this._onDiveStart) { this._onDiveStart(); this._onDiveStart = null }
 
-      if (t < 0.6) {
-        const zoom = 1 + e * 6
-        const mapCenterX = (leftX + rightX + rightW) / 2
-        const mapCenterY = H * 0.48
+      // Find focus point: last dot on the map (the "destination")
+      const dots = this._getDefaultDots()
+      const focusDot = dots.length > 0 ? dots[dots.length - 1] : { x: 0.5, y: 0.3 }
+      const mapMargin = rightW * 0.1
+      const focusX = rightX + mapMargin + focusDot.x * (rightW - mapMargin * 2)
+      const focusY = H * 0.12 + 25 + focusDot.y * (H * 0.72 - 45)
+
+      if (t < 0.5) {
+        // Phase 1: Zoom into the last dot on the map
+        const zoom = 1 + e * 8
         cx.save()
-        cx.translate(mapCenterX, mapCenterY); cx.scale(zoom, zoom); cx.translate(-mapCenterX, -mapCenterY)
+        cx.translate(focusX, focusY); cx.scale(zoom, zoom); cx.translate(-focusX, -focusY)
         const scrollTop = H * 0.12, scrollH = H * 0.72
         this._drawParchment(cx, rightX, scrollTop, rightW, scrollH)
         this._drawAbstractMap(cx, rightX, scrollTop, rightW, scrollH, 1)
         cx.restore()
-        cx.fillStyle = `rgba(0,0,0,${e * 0.7})`
-        cx.fillRect(0, 0, W, H * 0.25); cx.fillRect(0, H * 0.75, W, H * 0.25)
+        // Vignette closing in
+        cx.fillStyle = `rgba(0,0,0,${e * 0.8})`
+        cx.fillRect(0, 0, W, H * 0.2 + e * H * 0.15)
+        cx.fillRect(0, H * (0.8 - e * 0.15), W, H * 0.2 + e * H * 0.15)
+      } else if (t < 0.65) {
+        // Phase 2: Brief golden flash (transition moment)
+        const flashT = (t - 0.5) / 0.15
+        const flashAlpha = Math.sin(flashT * Math.PI) * 0.25
+        cx.fillStyle = `rgba(255,200,80,${flashAlpha})`
+        cx.fillRect(0, 0, W, H)
       } else {
-        const fadeT = (t - 0.6) / 0.4
+        // Phase 3: Fade to transparent (3D scene visible underneath)
+        const fadeT = (t - 0.65) / 0.35
         this._wrapper.style.opacity = String(1 - fadeT)
         this._wrapper.style.background = 'transparent'
       }
 
-      if (t > 0.3) this._spawnParticles(3, W / 2 + (Math.random() - 0.5) * W * 0.3, H / 2 + (Math.random() - 0.5) * H * 0.3, 'spark')
+      // Dissolving sparks throughout
+      if (t > 0.2) this._spawnParticles(3, focusX + (Math.random() - 0.5) * 60, focusY + (Math.random() - 0.5) * 60, 'spark')
       this._drawParticles(cx)
 
       if (t >= 1) { this._state = STATES.DONE; this._cleanup(); this._onComplete?.() }

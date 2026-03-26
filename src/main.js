@@ -809,7 +809,20 @@ async function startFirstRun() {
 
   // Feed LLM results to double scroll cinematic
   // LEFT scroll = intro text, RIGHT scroll = map dots from events
+  // Simulate terrain loading progress (terrain generates synchronously in game_scene_3d,
+  // but we animate the map trail alongside the LLM scenario generation)
+  let terrainProgress = 0
+  const terrainInterval = setInterval(() => {
+    terrainProgress = Math.min(1, terrainProgress + 0.02)
+    bookCinematic.onTerrainProgress(terrainProgress)
+    if (terrainProgress >= 1) clearInterval(terrainInterval)
+  }, 100)
+
   scenarioPromise.then(success => {
+    // Terrain is ready once scenario finishes (synchronous generation)
+    bookCinematic.onTerrainReady()
+    clearInterval(terrainInterval)
+
     if (success) {
       // Intro text for left scroll
       const title = getScenarioTitle() || 'Broceliande'
@@ -824,6 +837,8 @@ async function startFirstRun() {
       bookCinematic.onEventsReady([])
     }
   }).catch(() => {
+    bookCinematic.onTerrainReady()
+    clearInterval(terrainInterval)
     bookCinematic.onIntroReady('Broceliande', '')
     bookCinematic.onEventsReady([])
   })
