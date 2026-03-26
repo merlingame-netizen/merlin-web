@@ -583,127 +583,184 @@ function _showLoadingScreen() {
   el.id = 'merlin-loading'
   el.style.cssText = 'position:fixed;inset:0;z-index:100;background:#d4c5a0;overflow:hidden;'
 
-  // Canvas for animated path drawing
   const cv = document.createElement('canvas')
-  cv.width = 600; cv.height = 800
+  const W = 600, H = 800
+  cv.width = W; cv.height = H
   cv.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-width:90vw;max-height:90vh;'
   el.appendChild(cv)
   document.body.appendChild(el)
 
   const cx = cv.getContext('2d')
-  let t = 0, pathProgress = 0, eventDots = [], rafId = 0
+  let t = 0, rafId = 0
 
-  // Generate random path points (Bézier curves)
+  // Generate 12 path segments with 3 forks + 25 event positions
   const pathPts = []
-  let px = 300, py = 720
-  for (let i = 0; i < 8; i++) {
-    const nx = 100 + Math.random() * 400
-    const ny = py - 60 - Math.random() * 40
-    pathPts.push({ x: px, y: py, cx1: px + (Math.random() - 0.5) * 80, cy1: py - 30, cx2: nx + (Math.random() - 0.5) * 80, cy2: ny + 30 })
-    // Fork branch at some points
-    if (i === 2 || i === 5) {
-      const forkX = nx + (Math.random() > 0.5 ? 80 : -80)
-      eventDots.push({ x: nx, y: ny, type: 'fork', r: 0 })
-      pathPts.push({ x: nx, y: ny, cx1: nx + 20, cy1: ny - 20, cx2: forkX, cy2: ny - 60, isBranch: true })
+  const eventDots = []
+  let px = 300, py = 740
+  for (let i = 0; i < 12; i++) {
+    const nx = 80 + Math.random() * 440
+    const ny = py - 45 - Math.random() * 30
+    pathPts.push({
+      x: px, y: py,
+      cx1: px + (Math.random() - 0.5) * 60, cy1: py - 20,
+      cx2: nx + (Math.random() - 0.5) * 60, cy2: ny + 20,
+      isBranch: false,
+    })
+    // Forks at positions 3, 7, 10
+    if (i === 3 || i === 7 || i === 10) {
+      const forkX = nx + (Math.random() > 0.5 ? 70 : -70)
+      eventDots.push({ x: nx, y: ny, type: 'fork', r: 0, appear: i * 0.4 })
+      pathPts.push({ x: nx, y: ny, cx1: nx + 15, cy1: ny - 15, cx2: forkX, cy2: ny - 45, isBranch: true })
     }
-    // Event markers
-    if (i % 2 === 0) eventDots.push({ x: nx, y: ny, type: 'event', r: 0 })
+    // Events every segment
+    eventDots.push({
+      x: nx + (Math.random() - 0.5) * 20, y: ny + (Math.random() - 0.5) * 10,
+      type: 'event', r: 0, appear: i * 0.4 + 0.2,
+    })
     px = nx; py = ny
   }
 
+  // Biome colors for painting phase
+  const biomeColors = [
+    { r: 80, g: 140, b: 60 },  // forest green
+    { r: 60, g: 120, b: 80 },  // deep green
+    { r: 100, g: 150, b: 70 }, // light green
+    { r: 70, g: 90, b: 50 },   // dark moss
+  ]
+
   const drawFrame = () => {
     t += 0.016
-    pathProgress = Math.min(1, t / 5) // 5s to draw full path
+    const phase1End = 2      // parchment appears
+    const phase2End = 6      // paths draw
+    const phase3End = 8.5    // biome painting
+    const phase4End = 10     // fade to dark
 
-    // Parchment background with aged texture
+    // ═══ PHASE 1: Parchment base (0-2s) ═══
+    // Background
     cx.fillStyle = '#d4c5a0'
-    cx.fillRect(0, 0, 600, 800)
-    // Subtle noise
-    for (let i = 0; i < 200; i++) {
-      cx.fillStyle = `rgba(${120 + Math.random() * 40}, ${100 + Math.random() * 30}, ${60 + Math.random() * 30}, 0.03)`
-      cx.fillRect(Math.random() * 600, Math.random() * 800, 2 + Math.random() * 4, 2 + Math.random() * 4)
+    cx.fillRect(0, 0, W, H)
+    // Aged noise (less per frame for perf)
+    if (Math.random() > 0.7) {
+      for (let i = 0; i < 30; i++) {
+        cx.fillStyle = `rgba(${110 + Math.random() * 40}, ${90 + Math.random() * 30}, ${55 + Math.random() * 25}, 0.03)`
+        cx.fillRect(Math.random() * W, Math.random() * H, 2 + Math.random() * 5, 2 + Math.random() * 5)
+      }
     }
-
     // Border
-    cx.strokeStyle = '#8a7040'; cx.lineWidth = 3; cx.strokeRect(15, 15, 570, 770)
-    cx.strokeStyle = '#8a7040'; cx.lineWidth = 1; cx.strokeRect(22, 22, 556, 756)
+    cx.strokeStyle = '#8a7040'; cx.lineWidth = 3; cx.strokeRect(12, 12, W - 24, H - 24)
+    cx.strokeStyle = '#9a8050'; cx.lineWidth = 1; cx.strokeRect(20, 20, W - 40, H - 40)
 
-    // Title
-    cx.fillStyle = '#4a3520'
-    cx.font = 'bold 32px "VT323", serif'
+    // Title (fade in)
+    const titleAlpha = Math.min(1, t / 1.5)
+    cx.globalAlpha = titleAlpha
+    cx.fillStyle = '#3a2510'
+    cx.font = 'bold 28px Georgia, serif'
     cx.textAlign = 'center'
-    cx.fillText('M.E.R.L.I.N.', 300, 55)
-    cx.font = '16px "VT323", serif'
+    cx.fillText('M.E.R.L.I.N.', W / 2, 48)
+    cx.font = '14px Georgia, serif'
     cx.fillStyle = '#6a5a40'
-    cx.fillText('Forêt de Brocéliande', 300, 80)
-
-    // Animated path (ink drawing effect)
-    const segsToDraw = Math.floor(pathProgress * pathPts.length)
-    const segFrac = (pathProgress * pathPts.length) % 1
-
-    cx.strokeStyle = '#5a4a30'
-    cx.lineWidth = 2.5
-    cx.setLineDash([])
-
-    for (let i = 0; i < segsToDraw + 1 && i < pathPts.length; i++) {
-      const p = pathPts[i]
-      const frac = i < segsToDraw ? 1 : segFrac
-      if (frac <= 0) continue
-
-      cx.globalAlpha = p.isBranch ? 0.4 : 0.8
-      cx.strokeStyle = p.isBranch ? '#7a6a50' : '#5a4a30'
-      cx.lineWidth = p.isBranch ? 1.5 : 2.5
-
-      // Draw partial Bézier
-      cx.beginPath()
-      cx.moveTo(p.x, p.y)
-      const steps = Math.ceil(frac * 20)
-      for (let s = 1; s <= steps; s++) {
-        const st = s / 20
-        const mt = 1 - st
-        const bx = mt*mt*mt*p.x + 3*mt*mt*st*p.cx1 + 3*mt*st*st*p.cx2 + st*st*st*(pathPts[i+1]?.x ?? p.cx2)
-        const by = mt*mt*mt*p.y + 3*mt*mt*st*p.cy1 + 3*mt*st*st*p.cy2 + st*st*st*(pathPts[i+1]?.y ?? p.cy2)
-        cx.lineTo(bx, by)
-      }
-      cx.stroke()
-    }
+    cx.fillText('Forêt de Brocéliande', W / 2, 70)
     cx.globalAlpha = 1
+    // ═══ PHASE 2: Path drawing (2-6s) ═══
+    if (t > phase1End) {
+      const pathT = Math.min(1, (t - phase1End) / (phase2End - phase1End))
+      const segsToDraw = Math.floor(pathT * pathPts.length)
+      const segFrac = (pathT * pathPts.length) % 1
 
-    // Event dots (appear with delay)
-    eventDots.forEach((d, i) => {
-      const appear = (i + 1) * 0.6 // staggered appearance
-      if (t > appear) {
-        d.r = Math.min(1, (t - appear) * 2)
-        const r = d.r * (d.type === 'fork' ? 6 : 4)
-        cx.beginPath(); cx.arc(d.x, d.y, r, 0, Math.PI * 2)
-        cx.fillStyle = d.type === 'fork' ? '#cc6633' : '#33aa55'
-        cx.fill()
-        // Glow
-        cx.beginPath(); cx.arc(d.x, d.y, r + 3, 0, Math.PI * 2)
-        cx.strokeStyle = d.type === 'fork' ? 'rgba(204,102,51,0.3)' : 'rgba(51,170,85,0.3)'
-        cx.lineWidth = 1; cx.stroke()
+      for (let i = 0; i < segsToDraw + 1 && i < pathPts.length; i++) {
+        const p = pathPts[i]
+        const frac = i < segsToDraw ? 1 : segFrac
+        if (frac <= 0) continue
+
+        cx.globalAlpha = p.isBranch ? 0.35 : 0.75
+        cx.strokeStyle = p.isBranch ? '#8a7a55' : '#5a4a2a'
+        cx.lineWidth = p.isBranch ? 1.5 : 2.5
+        cx.beginPath(); cx.moveTo(p.x, p.y)
+        const steps = Math.ceil(frac * 24)
+        for (let s = 1; s <= steps; s++) {
+          const st = s / 24, mt = 1 - st
+          const nx = pathPts[i + 1]?.x ?? p.cx2, ny = pathPts[i + 1]?.y ?? p.cy2
+          cx.lineTo(
+            mt*mt*mt*p.x + 3*mt*mt*st*p.cx1 + 3*mt*st*st*p.cx2 + st*st*st*nx,
+            mt*mt*mt*p.y + 3*mt*mt*st*p.cy1 + 3*mt*st*st*p.cy2 + st*st*st*ny
+          )
+        }
+        cx.stroke()
       }
-    })
+      cx.globalAlpha = 1
 
-    // Status text
-    cx.fillStyle = '#6a5a40'
-    cx.font = '14px "VT323", serif'
-    cx.textAlign = 'center'
-    const messages = [
-      'Merlin trace les sentiers de votre destin...',
-      'Les korrigans murmurent aux carrefours...',
-      'Les runes s\'illuminent le long du chemin...',
-      'La forêt se prépare à vous accueillir...',
-    ]
-    cx.fillText(messages[Math.floor(t / 2) % messages.length], 300, 760)
+      // Event runes appear
+      eventDots.forEach(d => {
+        if (t > phase1End + d.appear) {
+          d.r = Math.min(1, (t - phase1End - d.appear) * 1.5)
+          const r = d.r * (d.type === 'fork' ? 7 : 4)
+          // Glow ring
+          cx.beginPath(); cx.arc(d.x, d.y, r + 4, 0, Math.PI * 2)
+          cx.strokeStyle = d.type === 'fork' ? 'rgba(200,100,40,0.25)' : 'rgba(50,160,80,0.25)'
+          cx.lineWidth = 2; cx.stroke()
+          // Dot
+          cx.beginPath(); cx.arc(d.x, d.y, r, 0, Math.PI * 2)
+          cx.fillStyle = d.type === 'fork' ? '#cc6633' : '#33aa55'
+          cx.fill()
+        }
+      })
+    }
 
-    // Progress bar at bottom
-    cx.fillStyle = 'rgba(90,74,48,0.2)'
-    cx.fillRect(50, 775, 500, 4)
+    // ═══ PHASE 3: Biome painting (6-8.5s) ═══
+    if (t > phase2End) {
+      const paintT = Math.min(1, (t - phase2End) / (phase3End - phase2End))
+      // Watercolor sweep from bottom to top
+      const paintY = H - paintT * (H - 80)
+      for (let y = H - 30; y > paintY; y -= 6) {
+        for (let x = 30; x < W - 30; x += 8) {
+          const bc = biomeColors[Math.floor(Math.random() * biomeColors.length)]
+          const dist = Math.abs(y - paintY)
+          const alpha = Math.max(0, 0.06 - dist * 0.0003)
+          cx.fillStyle = `rgba(${bc.r},${bc.g},${bc.b},${alpha})`
+          cx.fillRect(x + (Math.random() - 0.5) * 4, y + (Math.random() - 0.5) * 4, 6 + Math.random() * 8, 6 + Math.random() * 8)
+        }
+      }
+    }
+
+    // ═══ PHASE 4: Fade to dark for 3D transition (8.5-10s) ═══
+    if (t > phase3End) {
+      const fadeT = Math.min(1, (t - phase3End) / (phase4End - phase3End))
+      cx.fillStyle = `rgba(6,13,6,${fadeT * 0.95})`
+      cx.fillRect(0, 0, W, H)
+
+      // "Entering the forest..." text
+      cx.globalAlpha = Math.min(1, fadeT * 2)
+      cx.fillStyle = '#33ff66'
+      cx.font = '18px Georgia, serif'
+      cx.textAlign = 'center'
+      cx.fillText('Entrez dans la forêt...', W / 2, H / 2)
+      cx.globalAlpha = 1
+    }
+
+    // Status message (rotating)
+    if (t < phase3End) {
+      const msgs = [
+        'Merlin trace les sentiers de votre destin...',
+        'Les korrigans murmurent aux carrefours...',
+        'Les runes s\'illuminent le long du chemin...',
+        'La forêt se prépare à vous accueillir...',
+        'Les factions observent votre arrivée...',
+        'Le voile entre les mondes s\'amincit...',
+      ]
+      cx.fillStyle = '#6a5a40'
+      cx.font = 'italic 13px Georgia, serif'
+      cx.textAlign = 'center'
+      cx.fillText(msgs[Math.floor(t / 1.8) % msgs.length], W / 2, H - 30)
+    }
+
+    // Progress bar
+    const totalProgress = Math.min(1, t / phase4End)
+    cx.fillStyle = 'rgba(90,74,48,0.15)'
+    cx.fillRect(40, H - 12, W - 80, 3)
     cx.fillStyle = '#5a4a30'
-    cx.fillRect(50, 775, 500 * pathProgress, 4)
+    cx.fillRect(40, H - 12, (W - 80) * totalProgress, 3)
 
-    if (pathProgress < 1) {
+    if (t < phase4End) {
       rafId = requestAnimationFrame(drawFrame)
     }
   }
@@ -744,7 +801,7 @@ async function startFirstRun() {
     await generateScenario(getState()).catch(e => console.warn('[Scenario] Init:', e?.message))
     await prewarmMultiple(getState(), 2).catch(e => console.warn('[Prewarm] Init:', e?.message))
   })()
-  await Promise.race([llmReady, new Promise(r => setTimeout(r, 8000))])
+  await Promise.race([llmReady, new Promise(r => setTimeout(r, 12000))]) // Cinematic is ~10s
   _hideLoadingScreen()
 
   // Wire encounter callback: PathCamera stops → draw next card
