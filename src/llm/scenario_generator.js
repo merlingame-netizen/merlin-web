@@ -55,15 +55,19 @@ export async function generateScenario(state) {
     const ctx = buildNarratorContext(state)
     const prompt = _buildScenarioPrompt(ctx)
 
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000)
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
       body: JSON.stringify({
         mode: 'scenario',
         system: prompt.system,
         user: prompt.user,
       }),
     })
+    clearTimeout(timeoutId)
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
@@ -84,11 +88,15 @@ export async function generateScenario(state) {
         }))
 
         // Build path_events from events (or cards as fallback)
+        // Use dynamic spacing matching PathCamera biome profiles
         const pathSource = events.length >= 5 ? events : validCards
+        if (events.length < 5) console.warn(`[Scenario] Only ${events.length} events; using ${validCards.length} cards for path`)
+        const count = pathSource.length
+        const spacing = 0.9 / Math.max(count, 1)
         const path_events = pathSource.map((c, i) => ({
-          position: 0.03 + i * 0.035,
-          type: c.scene_tag || 'glow',
-          tag: c.scene_tag || 'glow',
+          position: 0.03 + i * spacing,
+          type: c.scene_tag || c.tag || 'glow',
+          tag: c.scene_tag || c.tag || 'glow',
           mood: c.tags?.includes('danger') ? 'danger' : (c.tags?.includes('sacred') ? 'sacred' : 'neutral'),
           cardIndex: i,
         }))

@@ -8,13 +8,13 @@ import { PathCamera } from '../three/path_camera.js'
 import { EncounterSpawner } from '../three/encounter_spawner.js'
 import { EffectVisuals } from '../three/effect_visuals.js'
 import { Card3D } from '../three/card_3d.js'
-import { playEyelidOpen, playEyelidClose } from '../three/eyelid_effect.js'
+// eyelid_effect import removed — intro handled by book_cinematic
 import { spawnEventAsset, dismissEventAsset, matchAsset } from '../three/event_assets.js'
 import { spawnEventProps, dismissEventProps, getEventType } from '../three/event_props.js'
 import { updateTweens } from '../three/tween_engine.js'
 import { startBiomeDrone, stopBiomeDrone, playEncounterSpawn, playEncounterDismiss } from '../audio/spatial_audio.js'
 import { SFX } from '../audio/sfx_manager.js'
-import { getIntroText, getSeasonName } from '../data/intro_texts.js'
+// intro_texts import removed — intro handled by book_cinematic
 import { getScenarioTitle, getScenarioIntro, getPathEvents } from '../llm/scenario_generator.js'
 import { getLLMStatus, onStatusChange } from '../llm/prewarm.js'
 import { getRealPeriod, getRealSeason } from '../three/lighting_system.js'
@@ -253,116 +253,6 @@ export class GameScene3D {
     this._pathCamera.startWalking()
 
     this.render(state)
-  }
-
-  /** 3D Game Intro: eyelid iris open, parchment card drops, "Entrer" button */
-  async _showGameIntro(biomeKey, seasonIndex, day) {
-    const center = this._el?.querySelector('#g3d-center')
-    if (!center) return
-
-    // 1. Iris opens (circular black -> reveals scene)
-    await playEyelidOpen(2000)
-
-    // 2. Get scenario intro text (from LLM or fallback)
-    const scenarioIntro = getScenarioIntro()
-    const introData = getIntroText(biomeKey, seasonIndex)
-    let introText = scenarioIntro || (Array.isArray(introData) ? introData.join(' ') : String(introData))
-    // Cap intro text to ~150 chars to keep typewriter under 5s at 30ms/char
-    if (introText.length > 150) {
-      const cutPoint = introText.lastIndexOf('.', 150)
-      introText = introText.substring(0, cutPoint > 50 ? cutPoint + 1 : 150)
-    }
-    const scenarioTitle = this._scenarioTitle || 'Broceliande'
-
-    // 3. Spawn a PARCHMENT card in 3D (drops from above)
-    const cam = this._world.getCamera()
-    const dir = new THREE.Vector3()
-    cam.getWorldDirection(dir)
-    const cardPos = cam.position.clone().add(dir.multiplyScalar(2.5))
-    cardPos.y = cam.position.y - 0.1
-
-    const introCardData = {
-      title: scenarioTitle,
-      text: introText,
-      choices: [],
-      _faction: 'druides',
-      _style: 'parchment',
-    }
-
-    this._introCard = new Card3D(this._world.getScene(), cam, {
-      position: cardPos,
-      card: introCardData,
-      parchment: true,
-    })
-
-    // Card drops from sky with bounce
-    if (this._introCard.group) {
-      SFX.cardDraw()
-      await this._introCard.dropFromSky(cam.position)
-      SFX.cardReveal()
-
-      // Text writes on page 1
-      // 80 chars/sec batched = ~2s for 150 chars, smooth rendering
-      await this._introCard.animateText(introCardData, 80)
-
-      // Scale pulse + edge glow when text finishes
-      await Promise.all([
-        this._introCard.pulseScale(),
-        this._introCard.flashEdgeGlow(),
-      ])
-    }
-
-    // Prewarm handled by startFirstRun() in main.js — no duplicate here
-
-    // 4. Page-turning loop + final "Enter" button
-    const totalPages = this._introCard?.pageCount || 1
-    const showIntroButton = (isLast) => {
-      const label = isLast ? 'Entrer dans la for\u00eat \u25B6' : 'Tourner la page \u25B6'
-      const btnClass = isLast ? 'g3d-intro-go' : 'g3d-intro-flip'
-      center.innerHTML = `
-        <div class="g3d-intro-actions" style="position:fixed;bottom:20px;left:0;right:0;z-index:50;display:flex;justify-content:center;pointer-events:auto">
-          <button class="g3d-intro-btn ${btnClass}" style="pointer-events:auto;cursor:pointer">${label}</button>
-        </div>
-      `
-    }
-
-    // Show first button
-    showIntroButton(totalPages <= 1)
-
-    // Wait for user to page through all pages then enter
-    await new Promise(resolve => {
-      const handleClick = async () => {
-        const card = this._introCard
-        if (!card) { resolve(); return }
-
-        try { SFX.click() } catch (e) { /* ignore */ }
-
-        if (!card.isLastPage) {
-          // Flip to next page
-          center.innerHTML = '' // hide button during flip
-          await card.nextPage()
-          try { SFX.cardReveal() } catch (e) { /* ignore */ }
-          showIntroButton(card.isLastPage)
-          // Re-attach listener
-          center.querySelector('.g3d-intro-btn')?.addEventListener('click', handleClick, { once: true })
-        } else {
-          // Last page — enter the forest
-          try { SFX.confirm() } catch (e) { /* ignore */ }
-          try { SFX.transitionWhoosh() } catch (e) { /* ignore */ }
-          if (card.flipOut) card.flipOut()
-          else if (card.dismiss) card.dismiss()
-          this._introCard = null
-          center.innerHTML = ''
-          resolve()
-        }
-      }
-      center.querySelector('.g3d-intro-btn')?.addEventListener('click', handleClick, { once: true })
-    })
-
-    // 5. Start walking
-    this._started = true
-    this._pathCamera.startWalking()
-    this._introCleanup = null
   }
 
   /** Fork choice — visual path split, player picks a direction */

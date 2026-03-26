@@ -26,7 +26,7 @@ export class BookCinematic {
     // Intro text (narrative — written on LEFT scroll)
     this._introText = ''
     this._title = ''
-    this._fallbackIntro = 'Les brumes de Broceliande se levent lentement, devoilant les racines noueuses des chenes millenaires. Au loin, entre les troncs, une lueur ambre pulse — le Nemeton, coeur sacre de la foret. Les korrigans ont laisse des traces dans la rosee. Le sentier s\'ouvre devant toi, etroit et sinueux. Merlin murmure dans le vent: "Les signes de la foret te guideront, mais chaque choix porte son ombre." Il n\'y a pas de retour possible. La mousse epaisse etouffe tes pas. Des champignons phosphorescents dessinent un chemin entre les pierres dressees. Un corbeau t\'observe depuis un chene centenaire, ses yeux brillent d\'une intelligence surnaturelle. L\'air sent la terre humide et le thym sauvage. Quelque part, le bruit d\'un ruisseau qui murmure des enigmes anciennes. Les menhirs se dressent comme des sentinelles immobiles, gardiens d\'un monde que peu d\'hommes connaissent encore. La foret attend. Elle a toujours attendu.'
+    this._fallbackIntro = 'Les brumes de Broceliande se levent lentement, devoilant les racines noueuses des chenes millenaires. Au loin, une lueur ambre pulse — le Nemeton, coeur sacre de la foret. Les korrigans ont laisse des traces dans la rosee. Le sentier s\'ouvre devant toi, etroit et sinueux. Merlin murmure dans le vent: "Les signes te guideront, mais chaque choix porte son ombre." Des champignons phosphorescents dessinent un chemin entre les pierres dressees. Un corbeau t\'observe, ses yeux brillent d\'une intelligence surnaturelle. La foret attend.'
     this._charIndex = 0
 
     // Map dots (RIGHT scroll) — abstract points from events, NO labels

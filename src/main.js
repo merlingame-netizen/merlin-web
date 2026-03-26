@@ -813,6 +813,7 @@ async function startFirstRun() {
   // but we animate the map trail alongside the LLM scenario generation)
   let terrainProgress = 0
   const terrainInterval = setInterval(() => {
+    if (bookCinematic.isDone()) { clearInterval(terrainInterval); return }
     terrainProgress = Math.min(1, terrainProgress + 0.02)
     bookCinematic.onTerrainProgress(terrainProgress)
     if (terrainProgress >= 1) clearInterval(terrainInterval)
