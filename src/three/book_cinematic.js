@@ -102,6 +102,7 @@ export class BookCinematic {
     this._pageLeft = new THREE.Mesh(pageGeo, new THREE.MeshBasicMaterial({ map: this._pageTexture }))
     this._pageLeft.rotation.x = -Math.PI / 2
     this._pageLeft.position.set(-0.6, 0.06, 0)
+    this._pageLeft.visible = false // hidden until cover opens
     this._group.add(this._pageLeft)
 
     // ─── PAGE RIGHT (for map later) ───
@@ -153,8 +154,9 @@ export class BookCinematic {
     const ambient = new THREE.AmbientLight(0x444444, 0.5)
     this._group.add(ambient)
 
-    // ─── POSITION book in front of camera ───
-    this._group.position.set(0, -0.5, -2.5)
+    // ─── POSITION book — starts invisible below camera, will animate up ───
+    this._group.position.set(0, -2, 0)
+    this._group.scale.setScalar(0.01) // starts invisible
 
     // ─── Skip button (DOM) ───
     this._skipBtn = document.createElement('button')
@@ -292,15 +294,19 @@ export class BookCinematic {
     this._t += dt / 1000
     const s = this._state
 
-    // BOOK_APPEAR: fade in + float up (2.5s, smooth ease-out)
+    // BOOK_APPEAR: rise from below + grow to full size (3s, smooth ease-out)
     if (s === STATES.BOOK_APPEAR) {
-      const t = Math.min(1, this._t / 2.5)
-      const ease = 1 - Math.pow(1 - t, 3) // cubic ease-out
-      this._group.position.y = -1.0 + ease * 0.8
-      this._group.scale.setScalar(0.1 + ease * 0.9)
-      // Gentle rotation settling
-      this._group.rotation.y = (1 - ease) * 0.3
-      if (t >= 1) { this._state = STATES.BOOK_OPEN; this._t = 0 }
+      const t = Math.min(1, this._t / 3.0)
+      const ease = 1 - Math.pow(1 - t, 4) // quartic ease-out (very smooth)
+      this._group.position.y = -2 + ease * 2.0 // rises from -2 to 0
+      this._group.scale.setScalar(ease * 1.0) // grows from 0 to 1.0
+      this._group.rotation.y = (1 - ease) * 0.5 // gentle settling rotation
+      if (t >= 1) {
+        this._group.position.y = 0
+        this._group.scale.setScalar(1.0)
+        this._group.rotation.y = 0
+        this._state = STATES.BOOK_OPEN; this._t = 0
+      }
     }
 
     // BOOK_OPEN: cover flips open (3s, smooth ease-in-out)
@@ -311,8 +317,13 @@ export class BookCinematic {
       this._coverPivot.rotation.z = -Math.PI * ease
       // Subtle camera drift during open
       this._camera.position.y = 2 - ease * 0.3
+      // Reveal pages when cover is halfway open
+      if (ease > 0.3 && !this._pageLeft.visible) {
+        this._pageLeft.visible = true
+      }
       if (t >= 1) {
         this._cover.visible = false
+        this._pageLeft.visible = true
         this._quill.visible = true
         this._state = STATES.WRITE_TITLE; this._t = 0; this._charIndex = 0
       }
