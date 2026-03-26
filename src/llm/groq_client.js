@@ -27,12 +27,26 @@ export async function generateCard(state) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
 
-      if (data.parsed) {
-        const validation = validateCard(data.parsed)
+      // Try parsed first, then attempt JSON repair on raw
+      let card = data.parsed
+      if (!card && data.raw) {
+        try {
+          // Basic JSON repair: trim, fix trailing commas, extract JSON block
+          let raw = data.raw.trim()
+          const jsonMatch = raw.match(/\{[\s\S]*\}/)
+          if (jsonMatch) raw = jsonMatch[0]
+          raw = raw.replace(/,\s*([}\]])/g, '$1') // trailing commas
+          card = JSON.parse(raw)
+          console.log('[Narrator] JSON repaired from raw')
+        } catch { /* repair failed */ }
+      }
+
+      if (card) {
+        const validation = validateCard(card)
         if (validation.valid) {
-          recordCardText(data.parsed.text)
+          recordCardText(card.text)
           recordEvent(prompt.category)
-          return data.parsed
+          return card
         }
         console.warn(`[Narrator] Guardrail fail (attempt ${attempt}):`, validation.errors)
       } else {
