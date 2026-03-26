@@ -103,9 +103,15 @@ export class GameScene3D {
         </div>
       </div>
       <div class="g3d-center" id="g3d-center"></div>
-      <div class="g3d-life-bar" id="g3d-life">
-        <div class="g3d-life-label">Essence</div>
-        <div class="g3d-life-hearts" id="g3d-hearts"></div>
+      <div class="g3d-bottom-hud">
+        <div class="g3d-life-bar" id="g3d-life">
+          <div class="g3d-life-label">Essence</div>
+          <div class="g3d-life-hearts" id="g3d-hearts"></div>
+        </div>
+        <div class="g3d-progress-bar" id="g3d-progress">
+          <div class="g3d-progress-fill" id="g3d-progress-fill"></div>
+          <span class="g3d-progress-text" id="g3d-progress-text">0/25</span>
+        </div>
       </div>
       <div class="g3d-sidebar">
         <button class="g3d-btn" id="g3d-save">[ Sauv ]</button>
@@ -524,6 +530,17 @@ export class GameScene3D {
         hearts.push(`<span class="g3d-heart ${filled ? 'g3d-heart-full' : 'g3d-heart-empty'}">${filled ? '♥' : '♡'}</span>`)
       }
       heartsEl.innerHTML = hearts.join('')
+    }
+
+    // Progress bar
+    const progressFill = this._el?.querySelector('#g3d-progress-fill')
+    const progressText = this._el?.querySelector('#g3d-progress-text')
+    if (progressFill && progressText) {
+      const cards = run.cards_played ?? 0
+      const max = 25
+      const pct = Math.min(100, Math.round(cards / max * 100))
+      progressFill.style.width = pct + '%'
+      progressText.textContent = `${cards}/${max}`
     }
 
     // Update period badge if it exists elsewhere
