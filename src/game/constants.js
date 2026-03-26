@@ -135,7 +135,7 @@ export const VICTORIES = {
     condition: (state) => {
       const f = state.run.factions
       const alliedCount = FACTIONS.filter(k => f[k] >= 70).length
-      return alliedCount >= 4 && state.run.cards_played >= 20
+      return alliedCount >= 3 && state.run.cards_played >= 20 // Was 4, reduced for achievability
     },
   },
   barde: {
@@ -151,8 +151,8 @@ export const VICTORIES = {
     title: 'Le Guerrier de l\'Ombre',
     text: 'Tu as survecu a l\'epreuve, forgeant des alliances par la force et le courage.',
     condition: (state) =>
-      state.run.cards_played >= 25 &&
-      state.run.life_essence >= LIFE_ESSENCE_MAX,
+      state.run.cards_played >= 20 &&
+      state.run.life_essence >= 3, // Achievable: survive 20 cards with 3+ life (was MAX=5, impossible)
   },
 }
 
