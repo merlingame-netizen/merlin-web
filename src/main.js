@@ -487,8 +487,14 @@ const gameScene3D = new GameScene3D(
           result.fumble ? SFX.minigameFumble() : SFX.minigameFail()
           dispatch('APPLY_EFFECTS', { effects: ['ADD_TENSION:10'], source: 'MINIGAME' })
           if (result.fumble) {
-            dispatch('APPLY_EFFECTS', { effects: ['DAMAGE_LIFE:1'], source: 'MINIGAME_FUMBLE' })
-            gameScene3D.playEffect('DAMAGE')
+            // Grace period: no fumble damage for first 3 cards
+            const cardsPlayed = getState().run?.cards_played ?? 0
+            if (cardsPlayed >= 3) {
+              dispatch('APPLY_EFFECTS', { effects: ['DAMAGE_LIFE:1'], source: 'MINIGAME_FUMBLE' })
+              gameScene3D.playEffect('DAMAGE')
+            } else {
+              _flashMessage('Le destin te protège... pour l\'instant.')
+            }
           }
           _difficulty = updateDifficulty(_difficulty, { type: 'damage', amount: result.fumble ? 2 : 1 })
         }
