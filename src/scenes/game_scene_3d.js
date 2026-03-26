@@ -596,6 +596,45 @@ export class GameScene3D {
     this._introCard?.update(elapsed)
     this._interactables?.update(elapsed, this._world?.getCamera()?.position)
     updateTweens()
+
+    // Ambient whispers during walking (every ~8-12s)
+    if (this._started && !this._encounterActive) {
+      this._whisperTimer = (this._whisperTimer ?? 0) + dt / 1000
+      if (this._whisperTimer > 8 + Math.random() * 4) {
+        this._whisperTimer = 0
+        this._showAmbientWhisper()
+      }
+    }
+  }
+
+  _showAmbientWhisper() {
+    const whispers = [
+      'Le vent murmure entre les branches...',
+      'Une brindille craque sous tes pas.',
+      'Des lucioles dansent au loin.',
+      'L\'air sent la mousse et la terre humide.',
+      'Un corbeau t\'observe depuis un chêne.',
+      'Les feuilles bruissent d\'histoires anciennes.',
+      'La brume s\'épaissit autour du sentier.',
+      'Tu sens une présence bienveillante.',
+      'Les racines dessinent des runes dans le sol.',
+      'Un frisson parcourt la forêt.',
+      'Les menhirs semblent veiller sur ton passage.',
+      'L\'écho d\'un chant lointain effleure tes oreilles.',
+    ]
+    const text = whispers[Math.floor(Math.random() * whispers.length)]
+    const el = document.createElement('div')
+    el.textContent = text
+    el.style.cssText = `
+      position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:25;
+      color:rgba(200,210,180,0.5);font:italic 14px Georgia,serif;
+      pointer-events:none;white-space:nowrap;
+      opacity:0;transition:opacity 1.5s;
+    `
+    document.body.appendChild(el)
+    requestAnimationFrame(() => { el.style.opacity = '1' })
+    setTimeout(() => { el.style.opacity = '0' }, 3000)
+    setTimeout(() => el.remove(), 4500)
   }
 
   async _showEncounter(card) {
