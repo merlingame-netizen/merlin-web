@@ -40,13 +40,17 @@ function createOverlay() {
   cWrap.appendChild(cv)
   wrap.appendChild(cWrap)
 
+  const instruct = document.createElement('div')
+  instruct.style.cssText = "font:13px/1.3 'VT323',monospace;color:rgba(255,255,255,0.5);margin-bottom:6px;text-align:center;max-width:380px;min-height:18px"
+  wrap.insertBefore(instruct, cWrap)
+
   const result = document.createElement('div')
   result.style.cssText = "font:24px/1 'VT323',monospace;color:#FFBF33;margin-top:10px;opacity:0;transition:opacity .3s"
   wrap.appendChild(result)
 
   document.body.appendChild(wrap)
   const cx = cv.getContext('2d')
-  return { wrap, cv, cx, name, barFill, result }
+  return { wrap, cv, cx, name, barFill, result, instruct }
 }
 
 function bg(cx) { cx.fillStyle = PALETTE.bg; cx.fillRect(0, 0, 400, 400) }
@@ -56,8 +60,9 @@ function bg(cx) { cx.fillStyle = PALETTE.bg; cx.fillRect(0, 0, 400, 400) }
 // ══════════════════════════════════════════════════════════════
 function playTraces() {
   return new Promise(resolve => {
-    const { wrap, cv, cx, name, barFill, result } = createOverlay()
+    const { wrap, cv, cx, name, barFill, result, instruct } = createOverlay()
     name.textContent = 'Traces'
+    instruct.textContent = 'Glissez le doigt le long du sentier lumineux'
     const dur = 10, pts = []
     for (let i = 0; i < 10; i++) pts.push({ x: 30 + Math.random() * 340, y: 15 + i * 38 })
     let trail = [], total = 0, onPath = 0, sparks = [], timer = 0, done = false
@@ -102,8 +107,9 @@ function playTraces() {
 // ══════════════════════════════════════════════════════════════
 function playRunes() {
   return new Promise(resolve => {
-    const { wrap, cv, cx, name, barFill, result } = createOverlay()
+    const { wrap, cv, cx, name, barFill, result, instruct } = createOverlay()
     name.textContent = 'Runes'
+    instruct.textContent = 'Trouvez la plante ou rune indiquée parmi les symboles'
     const dur = 13
     const symbols = ['\u1681', '\u1682', '\u168A', '\u1688', '\u1687', '\u1684']
     const seq = []; for (let i = 0; i < 5; i++) seq.push(symbols[Math.floor(Math.random() * symbols.length)])
@@ -171,8 +177,9 @@ function playRunes() {
 // ══════════════════════════════════════════════════════════════
 function playEquilibre() {
   return new Promise(resolve => {
-    const { wrap, cv, cx, name, barFill, result } = createOverlay()
+    const { wrap, cv, cx, name, barFill, result, instruct } = createOverlay()
     name.textContent = 'Equilibre'
+    instruct.textContent = 'Maintenez le curseur au centre de la barre'
     const dur = 11
     let bx = 200, sp = 0, touch = null, inC = 0, tot = 0, sparks = [], timer = 0, done = false
 
@@ -213,8 +220,9 @@ function playEquilibre() {
 // ══════════════════════════════════════════════════════════════
 function playHerbo() {
   return new Promise(resolve => {
-    const { wrap, cv, cx, name, barFill, result } = createOverlay()
+    const { wrap, cv, cx, name, barFill, result, instruct } = createOverlay()
     name.textContent = 'Herboristerie'
+    instruct.textContent = 'Identifiez la bonne plante parmi les specimens'
     const dur = 14
     const plants = [{ n: 'Sauge', c: '#3a5', ok: 1 }, { n: 'Belladone', c: '#933', ok: 0 }, { n: 'Thym', c: '#6a3', ok: 1 }, { n: 'Aconit', c: '#639', ok: 0 }, { n: 'Millepertuis', c: '#ca3', ok: 1 }, { n: 'Datura', c: '#963', ok: 0 }]
     let rd = 0, mx = 3, correct = 0, choices = [], picked = false, fb = '', timer = 0, done = false
@@ -276,8 +284,9 @@ function playHerbo() {
 // ══════════════════════════════════════════════════════════════
 function playCombat() {
   return new Promise(resolve => {
-    const { wrap, cv, cx, name, barFill, result } = createOverlay()
+    const { wrap, cv, cx, name, barFill, result, instruct } = createOverlay()
     name.textContent = 'Combat Rituel'
+    instruct.textContent = 'Cliquez au bon moment quand le curseur est dans la zone verte'
     const dur = 13
     let atk = -1, at = 0, dodges = 0, attacks = 0, mx = 9, phase = 'wait', wt = 0, flashes = [], timer = 0, done = false
 
@@ -326,8 +335,9 @@ function playCombat() {
 // ══════════════════════════════════════════════════════════════
 function playSangFroid() {
   return new Promise(resolve => {
-    const { wrap, cv, cx, name, barFill, result } = createOverlay()
+    const { wrap, cv, cx, name, barFill, result, instruct } = createOverlay()
     name.textContent = 'Sang-froid'
+    instruct.textContent = 'Restez immobile — ne bougez pas la souris'
     const dur = 9
     let tx = 200, ty = 200, hold = false, hx = 0, hy = 0, inT = 0, tot = 0, pp = 0, ripples = [], timer = 0, done = false
 
@@ -366,8 +376,9 @@ function playSangFroid() {
 // ══════════════════════════════════════════════════════════════
 function playArchery() {
   return new Promise(resolve => {
-    const { wrap, cv, cx, name, barFill, result } = createOverlay()
+    const { wrap, cv, cx, name, barFill, result, instruct } = createOverlay()
     name.textContent = 'Tir à l\'arc'
+    instruct.textContent = 'Cliquez sur la cible mouvante — 5 flèches'
     const dur = 8
     let timer = 0, done = false, arrows = [], targetX = 200, targetY = 100, targetVx = 2, score = 0
 
@@ -417,8 +428,9 @@ function playArchery() {
 // ══════════════════════════════════════════════════════════════
 function playPuzzle() {
   return new Promise(resolve => {
-    const { wrap, cv, cx, name, barFill, result } = createOverlay()
+    const { wrap, cv, cx, name, barFill, result, instruct } = createOverlay()
     name.textContent = 'Puzzle Runique'
+    instruct.textContent = 'Échangez les runes pour les remettre dans l\'ordre'
     const dur = 12
     const runes = ['ᚁ', 'ᚂ', 'ᚃ', 'ᚄ', 'ᚅ', 'ᚆ']
     const target = [...runes]
@@ -475,8 +487,9 @@ function playPuzzle() {
 // ══════════════════════════════════════════════════════════════
 function playFishing() {
   return new Promise(resolve => {
-    const { wrap, cv, cx, name, barFill, result } = createOverlay()
+    const { wrap, cv, cx, name, barFill, result, instruct } = createOverlay()
     name.textContent = 'Pêche'
+    instruct.textContent = 'Cliquez quand un poisson passe sous le flotteur'
     const dur = 10
     let timer = 0, done = false, fish = [], caught = 0, bobY = 200, bobPhase = Math.random() * 6.28
 
@@ -531,8 +544,9 @@ function playFishing() {
 // ══════════════════════════════════════════════════════════════
 function playNegotiate() {
   return new Promise(resolve => {
-    const { wrap, cv, cx, name, barFill, result } = createOverlay()
+    const { wrap, cv, cx, name, barFill, result, instruct } = createOverlay()
     name.textContent = 'Négociation'
+    instruct.textContent = 'Cliquez sur la barre pour trouver la valeur cachée (chaud/froid)'
     const dur = 8
     const targetVal = 30 + Math.floor(Math.random() * 40) // hidden target
     let sliderVal = 50, timer = 0, done = false, guesses = 0, bestDist = 100
@@ -577,8 +591,9 @@ function playNegotiate() {
 // ══════════════════════════════════════════════════════════════
 function playStealth() {
   return new Promise(resolve => {
-    const { wrap, cv, cx, name, barFill, result } = createOverlay()
+    const { wrap, cv, cx, name, barFill, result, instruct } = createOverlay()
     name.textContent = 'Furtivité'
+    instruct.textContent = 'Atteignez la sortie en évitant les cônes de vision des gardes'
     const dur = 8
     let playerX = 200, playerY = 350, timer = 0, done = false, detected = 0
     const guards = Array.from({ length: 4 }, () => ({
@@ -642,8 +657,9 @@ function playStealth() {
 // ══════════════════════════════════════════════════════════════
 function playDivination() {
   return new Promise(resolve => {
-    const { wrap, cv, cx, name, barFill, result } = createOverlay()
+    const { wrap, cv, cx, name, barFill, result, instruct } = createOverlay()
     name.textContent = 'Divination'
+    instruct.textContent = 'Mémorisez la séquence de symboles, puis reproduisez-la'
     const dur = 15, seqLen = 4
     const symbols = ['☽', '☀', '★', '⚡', '♦', '⬟']
     const sequence = Array.from({ length: seqLen }, () => Math.floor(Math.random() * 6))
