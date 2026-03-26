@@ -441,6 +441,9 @@ const gameScene3D = new GameScene3D(
         }
       }
 
+      // Show effect feedback toasts to player
+      _showEffectToasts(effects)
+
       const choiceLabel = card.choices?.[optionIndex]?.label ?? ''
       _profile = updateProfile(_profile, optionIndex, card.text ?? '', choiceLabel)
       _decisionHistory = recordDecision(_decisionHistory, { option: optionIndex, card: card.title })
@@ -905,6 +908,52 @@ function showSaveLoadScreen() {
     router.navigate(s.phase === 'game' ? 'game' : 'hub', s)
     if (s.phase === 'game') _drawNextCard()
   }
+}
+
+function _showEffectToasts(effects) {
+  if (!effects?.length) return
+  const toasts = []
+  for (const eff of effects) {
+    if (typeof eff !== 'string') continue
+    const parts = eff.split(':')
+    const type = parts[0]
+    if (type === 'SHIFT_FACTION' && parts[2]) {
+      const val = parseInt(parts[2])
+      const faction = parts[1]
+      const label = faction.charAt(0).toUpperCase() + faction.slice(1)
+      const sign = val >= 0 ? '+' : ''
+      toasts.push({ text: `${sign}${val} ${label}`, color: val >= 0 ? '#33aa55' : '#cc4444', icon: val >= 0 ? '▲' : '▼' })
+    } else if (type === 'DAMAGE_LIFE' || type === 'DAMAGE') {
+      toasts.push({ text: `-${parts[1] || 1} Vie`, color: '#ff4444', icon: '♥' })
+    } else if (type === 'HEAL_LIFE' || type === 'HEAL') {
+      toasts.push({ text: `+${parts[1] || 1} Vie`, color: '#44cc44', icon: '♥' })
+    } else if (type === 'ADD_KARMA') {
+      toasts.push({ text: `+${parts[1]} Karma`, color: '#ffcc44', icon: '✦' })
+    } else if (type === 'ADD_TENSION') {
+      toasts.push({ text: `+${parts[1]} Tension`, color: '#cc6644', icon: '⚡' })
+    }
+  }
+  // Stagger display
+  toasts.forEach((t, i) => {
+    setTimeout(() => {
+      const el = document.createElement('div')
+      el.textContent = `${t.icon} ${t.text}`
+      el.style.cssText = `
+        position:fixed;top:${40 + i * 36}%;left:50%;transform:translateX(-50%);z-index:200;
+        color:${t.color};font:bold 18px 'VT323',monospace;
+        text-shadow:0 0 8px ${t.color}66;
+        pointer-events:none;opacity:1;
+        transition:opacity 0.8s,transform 0.8s;
+      `
+      document.body.appendChild(el)
+      // Float up and fade
+      requestAnimationFrame(() => {
+        el.style.transform = 'translateX(-50%) translateY(-30px)'
+        el.style.opacity = '0'
+      })
+      setTimeout(() => el.remove(), 1500)
+    }, i * 200)
+  })
 }
 
 function _flashMessage(msg) {
