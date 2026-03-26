@@ -40,10 +40,21 @@ export class EndingScreen {
         ${ending.title}
       </div>
       <div class="ending-text"></div>
+      <div class="ending-path">
+        ${ending.id ? `Voie: ${ending.id.charAt(0).toUpperCase() + ending.id.slice(1)}` : ''}
+      </div>
       <div class="ending-stats">
-        <span>Cartes jouées: ${run.cards_played}</span>
-        <span>Jour ${run.day}</span>
-        <span>Souffle: ${run.souffle}/${SOUFFLE_MAX}</span>
+        <span>🗡 Cartes: ${run.cards_played}</span>
+        <span>☀ Jour ${run.day}</span>
+        <span>♥ Vie: ${run.life_essence}/5</span>
+        <span>◈ Souffle: ${run.souffle}/${SOUFFLE_MAX}</span>
+      </div>
+      <div class="ending-factions">
+        ${Object.entries(run.factions || {}).map(([k, v]) => {
+          const status = v >= 70 ? 'allié' : v <= 20 ? 'hostile' : ''
+          const color = v >= 70 ? '#33ff66' : v <= 20 ? '#ff4444' : '#aaaaaa'
+          return `<span style="color:${color}">${k}: ${v} ${status}</span>`
+        }).join(' · ')}
       </div>
       <div class="ending-actions">
         <button class="menu-btn" id="end-new-run">[ Nouvelle Aventure ]</button>
