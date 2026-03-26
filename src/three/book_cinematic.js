@@ -243,12 +243,27 @@ export class BookCinematic {
     cx.beginPath(); cx.moveTo(compassX, compassY + 2); cx.lineTo(compassX - 2.5, compassY + 8); cx.lineTo(compassX + 2.5, compassY + 8); cx.closePath()
     cx.fillStyle = 'rgba(120,100,70,0.4)'; cx.fill(); cx.textAlign = 'left'
 
-    // Subtle terrain hints (blobs)
-    cx.fillStyle = 'rgba(160,180,120,0.04)'
-    for (let i = 0; i < 4; i++) {
-      cx.beginPath()
-      cx.arc(x + margin + (0.2 + i * 0.2) * (w - margin * 2), y + 40 + Math.sin(i * 1.7) * h * 0.2, 20 + i * 8, 0, Math.PI * 2)
-      cx.fill()
+    // Subtle terrain hints — forest blobs + tiny tree symbols
+    cx.fillStyle = 'rgba(140,170,110,0.04)'
+    for (let i = 0; i < 5; i++) {
+      const bx = x + margin + (0.15 + i * 0.18) * (w - margin * 2)
+      const by = y + 40 + Math.sin(i * 1.7 + 0.5) * h * 0.2
+      cx.beginPath(); cx.arc(bx, by, 18 + i * 6, 0, Math.PI * 2); cx.fill()
+    }
+    // Tiny cartographic tree symbols (scattered)
+    cx.fillStyle = 'rgba(80,110,60,0.08)'; cx.font = '8px serif'
+    const treeSymbols = ['\u2663', '\u2660', '\u25B2'] // club, spade, triangle
+    for (let i = 0; i < 12; i++) {
+      const tx = x + margin + ((i * 0.073 + 0.05) % 0.9) * (w - margin * 2)
+      const ty2 = y + 35 + ((i * 0.11 + 0.08) % 0.85) * (h - 50)
+      cx.fillText(treeSymbols[i % 3], tx, ty2)
+    }
+    // Subtle mountain hints at top
+    cx.strokeStyle = 'rgba(100,80,50,0.06)'; cx.lineWidth = 0.8
+    for (let i = 0; i < 3; i++) {
+      const mx = x + margin + (0.2 + i * 0.3) * (w - margin * 2)
+      const my = y + 35 + h * 0.08
+      cx.beginPath(); cx.moveTo(mx - 10, my + 8); cx.lineTo(mx, my); cx.lineTo(mx + 10, my + 8); cx.stroke()
     }
 
     // How many segments to draw
@@ -260,7 +275,8 @@ export class BookCinematic {
     if (segsToShow > 0 || partialSeg > 0) {
       cx.strokeStyle = '#5a4a2a'; cx.lineWidth = 2; cx.lineCap = 'round'; cx.lineJoin = 'round'
 
-      for (let i = 0; i < segsToShow + (partialSeg > 0.01 ? 1 : 0) && i < totalSegs; i++) {
+      const maxSeg = Math.min(segsToShow + (partialSeg > 0.01 ? 1 : 0), totalSegs)
+      for (let i = 0; i < maxSeg; i++) {
         const d0 = dots[i], d1 = dots[i + 1]
         const px0 = x + margin + d0.x * (w - margin * 2)
         const py0 = y + 25 + d0.y * (h - 45)

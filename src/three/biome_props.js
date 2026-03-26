@@ -391,7 +391,7 @@ export class BiomeProps {
       const geo = _getGeometry(config.type)
       const isVegetation = ['tree_canopy', 'tree', 'bush', 'grass_patch', 'flower', 'fern'].includes(config.type)
       const isTrunk = config.type === 'tree_trunk'
-      const isWind = config.type === 'grass_patch' || config.type === 'fern' || config.type === 'tall_grass'
+      const isWind = ['grass_patch', 'fern', 'tall_grass', 'flower', 'bush'].includes(config.type)
 
       let mat
       if (isWind) {
