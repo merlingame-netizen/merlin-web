@@ -255,8 +255,14 @@ export class GameScene3D {
   }
 
   /** Aerial descent: camera starts high above terrain, descends to path start */
+  /** Aerial descent: hover above terrain → spiral down → hand off to PathCamera.
+   *  Requires: _pathCamera.configure() already called. */
   async _aerialDescent(biomeKey) {
     const cam = this._world.getCamera()
+    if (!this._pathCamera?.getPath()) {
+      console.warn('[Game3D] No path configured — skipping aerial, walking directly')
+      this._started = true; this._pathCamera?.startWalking(); return
+    }
     const startPos = this._pathCamera.getStartPosition()
     const lookTarget = this._pathCamera.getStartLookAt()
 
