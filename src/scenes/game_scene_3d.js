@@ -108,6 +108,10 @@ export class GameScene3D {
           <div class="g3d-life-label">Essence</div>
           <div class="g3d-life-hearts" id="g3d-hearts"></div>
         </div>
+        <div class="g3d-souffle-bar" id="g3d-souffle">
+          <div class="g3d-souffle-label">Souffle</div>
+          <div class="g3d-souffle-orb" id="g3d-souffle-orb">◈</div>
+        </div>
         <div class="g3d-progress-bar" id="g3d-progress">
           <div class="g3d-progress-fill" id="g3d-progress-fill"></div>
           <span class="g3d-progress-text" id="g3d-progress-text">0/25</span>
@@ -530,6 +534,13 @@ export class GameScene3D {
         hearts.push(`<span class="g3d-heart ${filled ? 'g3d-heart-full' : 'g3d-heart-empty'}">${filled ? '♥' : '♡'}</span>`)
       }
       heartsEl.innerHTML = hearts.join('')
+    }
+
+    // Souffle orb
+    const souffleOrb = this._el?.querySelector('#g3d-souffle-orb')
+    if (souffleOrb) {
+      const hasSouffle = (run.souffle ?? 0) > 0
+      souffleOrb.className = `g3d-souffle-orb ${hasSouffle ? 'g3d-souffle-active' : 'g3d-souffle-empty'}`
     }
 
     // Progress bar

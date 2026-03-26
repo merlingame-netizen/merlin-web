@@ -618,6 +618,33 @@ html, body {
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
+/* === SOUFFLE ORB === */
+.g3d-souffle-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 12px; border-radius: 8px;
+  background: rgba(4, 8, 4, 0.85);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.g3d-souffle-label {
+  color: rgba(100, 180, 255, 0.7); font: 11px/1 'VT323', monospace;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.g3d-souffle-orb {
+  font-size: 18px; transition: all 0.4s;
+}
+.g3d-souffle-active {
+  color: #44ccff; text-shadow: 0 0 10px rgba(68,204,255,0.6);
+  animation: soufflePulse 2s ease-in-out infinite;
+}
+.g3d-souffle-empty {
+  color: rgba(255,255,255,0.15); text-shadow: none;
+}
+@keyframes soufflePulse {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
 /* === PROGRESS BAR === */
 .g3d-progress-bar {
   display: flex; align-items: center; gap: 8px;
