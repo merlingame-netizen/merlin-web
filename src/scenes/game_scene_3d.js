@@ -463,7 +463,11 @@ export class GameScene3D {
     }
     const fallbackPool = BIOME_ASSETS[biomeKey] || BIOME_ASSETS.broceliande
 
-    const encounterPoints = Array.from({ length: 25 }, (_, i) => 0.03 + i * 0.035)
+    // Biome-aware encounter spacing (matches PathCamera)
+    const biomePointCounts = { broceliande: 25, landes: 25, cotes: 25, monts: 25, ile_sein: 20, huelgoat: 25, ecosse: 25, iles_mystiques: 22 }
+    const numPoints = biomePointCounts[biomeKey] || 25
+    const spacing = 0.9 / numPoints
+    const encounterPoints = Array.from({ length: numPoints }, (_, i) => 0.03 + i * spacing)
     const count = Math.min(encounterPoints.length, 12)
 
     for (let i = 0; i < count; i++) {

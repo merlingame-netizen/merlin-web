@@ -16,8 +16,12 @@ const PATH_PROFILES = {
   iles_mystiques: { spread: 0.5, length: 55, curviness: 1.4, points: 22 },
 }
 
-// 25 encounter stops along the path (t values 0-1) — ~3.5s walk between each
-const ENCOUNTER_POINTS = Array.from({ length: 25 }, (_, i) => 0.03 + i * 0.035)
+// Encounter stops — spaced by biome profile (default 25, ile_sein 20, iles_mystiques 22)
+function _buildEncounterPoints(count = 25) {
+  const spacing = 0.9 / count // use 90% of path (leave margins)
+  return Array.from({ length: count }, (_, i) => 0.03 + i * spacing)
+}
+let ENCOUNTER_POINTS = _buildEncounterPoints(25)
 
 const EYE_HEIGHT = 1.7
 const WALK_SPEED = 0.035 // Fast walk — ~30s full path — ~4s between encounters
@@ -56,6 +60,8 @@ export class PathCamera {
 
   configure(biomeKey) {
     const profile = PATH_PROFILES[biomeKey] ?? PATH_PROFILES.broceliande
+    // Rebuild encounter spacing for this biome's point count
+    ENCOUNTER_POINTS = _buildEncounterPoints(profile.points)
     const waypoints = []
 
     for (let i = 0; i < profile.points; i++) {
