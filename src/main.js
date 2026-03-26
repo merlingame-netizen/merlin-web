@@ -796,22 +796,9 @@ async function startFirstRun() {
   _difficulty = createDifficultyState()
   _syncRegistries()
 
-  // ─── STEP 2: Create book scene ───
-  console.log('[Book] Creating book cinematic scene')
-  const bookScene = new THREE.Scene()
-  bookScene.background = new THREE.Color(0x0c0c10) // dark but not pure black
-  const bookCam = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 20)
-  bookCam.position.set(0, 1.8, 2.5)
-  bookCam.lookAt(0, 0, 0)
-
-  const bookCinematic = new BookCinematic(bookScene, bookCam, renderManager.getRenderer())
-
-  // Activate book scene in renderer
-  renderManager.setActiveScene(bookScene, bookCam, (dt) => bookCinematic.update(dt))
-  renderManager.setPostProcessing(false)
-  renderManager.resume()
-
-  // Book scene now active — book handles its own visual reveal
+  // ─── STEP 2: Book cinematic (canvas 2D overlay — no Three.js scene needed) ───
+  renderManager.pause() // pause 3D while book plays
+  const bookCinematic = new BookCinematic() // self-contained DOM overlay
 
   // Start LLM generation in parallel
   clearScenario()
