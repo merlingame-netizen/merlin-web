@@ -795,13 +795,20 @@ async function startFirstRun() {
   // Show loading screen while LLM prepares cards
   _showLoadingScreen()
 
-  // Pre-generate scenario + 2 cards (sequential to avoid Groq rate limit)
+  // Pre-generate scenario + 2 cards while cinematic plays
   clearScenario()
   const llmReady = (async () => {
     await generateScenario(getState()).catch(e => console.warn('[Scenario] Init:', e?.message))
     await prewarmMultiple(getState(), 2).catch(e => console.warn('[Prewarm] Init:', e?.message))
   })()
-  await Promise.race([llmReady, new Promise(r => setTimeout(r, 12000))]) // Cinematic is ~10s
+
+  // Wait for BOTH: LLM ready AND cinematic minimum (10s animation)
+  const cinematicMinimum = new Promise(r => setTimeout(r, 10500)) // Full 5-phase animation
+  const llmTimeout = new Promise(r => setTimeout(r, 15000)) // Safety cap
+  await Promise.all([
+    cinematicMinimum, // Always wait for animation to complete
+    Promise.race([llmReady, llmTimeout]), // LLM or timeout
+  ])
   _hideLoadingScreen()
 
   // Wire encounter callback: PathCamera stops → draw next card
