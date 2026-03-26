@@ -85,7 +85,7 @@ export class MenuScene3D {
     ctx.shadowBlur = 10
     ctx.font = '48px "VT323", "Courier New", monospace'
     ctx.fillStyle = '#33ff66'
-    ctx.fillText('Le Jeu des Oghams', 512, 190)
+    ctx.fillText('Forêt de Brocéliande', 512, 190)
 
     const tex = new THREE.CanvasTexture(canvas)
     tex.needsUpdate = true

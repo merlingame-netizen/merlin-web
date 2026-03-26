@@ -793,6 +793,8 @@ async function startFirstRun() {
 
   // Now safe to switch scenes — screen is black
   _hide3D()
+  // Hide menu DOM overlay completely
+  document.querySelectorAll('.scene-menu, .scene-menu-3d-overlay').forEach(el => el.style.display = 'none')
 
   // Skip quiz/intro — go direct to game3d with Broceliande
   dispatch('NEW_RUN', { biome_key: 'broceliande', phase: 'game', profile: 'equilibre' })
