@@ -120,6 +120,26 @@ export const FALLBACK_POOLS = {
     card('l05', 'Le Crepuscule des Dieux',
       'Le ciel s\'embrase de couleurs impossibles. Les anciens dieux observent depuis les nuages. Ton dernier choix determinera le destin du monde entier.',
       [['S\'agenouiller', 'Humilite'], ['Lever les bras au ciel', 'Invocation'], ['Marcher droit sans flechir', 'Determination']], ['climax'], { min_card: 25 }),
+
+    card('l06', 'Le Pont entre les Mondes',
+      'Un pont de brume relie deux collines. D\'un cote le monde des vivants, de l\'autre le Sidhe. Merlin attend au milieu. "Ose-tu traverser?"',
+      [['Traverser vers le Sidhe', 'Audace'], ['Rester du cote des vivants', 'Prudent'], ['Parler a Merlin d\'abord', 'Sagesse']], ['sacred', 'magic'], { min_card: 18 }),
+
+    card('l07', 'La Meute des Ombres',
+      'Des loups spectraux encerclent le sentier. Leurs yeux luisent d\'une intelligence surnaturelle. L\'alpha te fixe — il veut quelque chose.',
+      [['Soutenir son regard', 'Courage'], ['Offrir de la nourriture', 'Diplomatie'], ['Invoquer une protection', 'Magie']], ['creature', 'danger'], { min_card: 15 }),
+
+    card('l08', 'La Forge des Ames',
+      'Une forge abandonnee fume encore. L\'enclume porte des marques d\'Oghams. Un marteau pulse d\'energie. "Forge ton propre destin", murmure le vent.',
+      [['Forger une arme', 'Force'], ['Forger un talisman', 'Magie'], ['Laisser la forge en paix', 'Respect']], ['sacred', 'stranger'], { min_card: 15 }),
+
+    card('l09', 'Le Conseil des Anciens',
+      'Six silhouettes encapuchonnees forment un cercle. Chacune represente une faction. Elles parlent en meme temps: "Qui soutiens-tu?"',
+      [['Les Druides et la Sagesse', 'Sagesse'], ['Les Guerriers et la Force', 'Force'], ['L\'Equilibre entre tous', 'Diplomatie']], ['sacred', 'trial'], { min_card: 20 }),
+
+    card('l10', 'La Prophetie Oubliee',
+      'Un parchemin tombe du ciel, brillant de runes. La prophetie parle de toi — ou de quelqu\'un qui te ressemble. Les mots changent quand tu les lis.',
+      [['Lire a voix haute', 'Audace'], ['Garder le parchemin', 'Prudent'], ['Le bruler dans le feu', 'Destruction']], ['magic', 'mystery'], { min_card: 18 }),
   ],
 
   crisis: [
