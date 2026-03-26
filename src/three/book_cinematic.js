@@ -1,163 +1,157 @@
-// M.E.R.L.I.N. — Book Cinematic v3 (Progress-Driven)
-// Animations pilotées par le chargement réel, pas par des timers fixes
-// Mécanique = durée fixe | Contenu = piloté par progress callbacks
+// M.E.R.L.I.N. — Book Cinematic v4
+// Pedestal + book + quill writes + page turn + map draws + fall into world
 
 import * as THREE from 'three'
 
 const STATES = {
-  BOOK_APPEAR: 0, BOOK_OPEN: 1, CAMERA_DOLLY: 2,
-  WRITE_SCENARIO: 3, MAP_APPEAR: 4, DRAW_PATH: 5,
-  COLOR_BIOME: 6, WAIT_CLICK: 7, FREEFALL: 8, DONE: 9,
+  APPROACH: 0,       // camera approaches pedestal
+  BOOK_OPEN: 1,      // cover opens, reveals RIGHT page
+  WRITE_PAGE1: 2,    // quill writes scenario on RIGHT page
+  WAIT_TURN: 3,      // player clicks to turn page
+  PAGE_TURN: 4,      // page flips right→left
+  WRITE_PAGE2: 5,    // scenario continues on LEFT page
+  DRAW_MAP: 6,       // quill draws path on RIGHT page
+  WAIT_START: 7,     // "Commencer" button
+  ORBIT_MAP: 8,      // camera orbits above map page
+  FALL_IN: 9,        // fall into the map → transition
+  DONE: 10,
 }
 
-const easeOut = t => 1 - Math.pow(1 - t, 3)
-const easeInOut = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+const ease = t => 1 - Math.pow(1 - t, 3)
+const easeIO = t => t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2
 
 export class BookCinematic {
   constructor(scene, camera) {
     this._scene = scene
     this._camera = camera
-    this._state = STATES.BOOK_APPEAR
+    this._state = STATES.APPROACH
     this._t = 0
-    this._group = new THREE.Group()
-    this._scene.add(this._group)
     this._onComplete = null
 
-    // ─── Progress object (fed by external callbacks) ───
-    this._progress = {
-      scenario: 0,     // 0→1 : titre(0.2) + intro chars(0.2→1.0)
-      pathEvents: 0,   // 0→1 : events received
-      terrain: 0,      // 0→1 : terrain ready
-      assets: 0,       // 0→1 : props placed
-    }
-
-    // Buffered LLM data
+    // Progress
+    this._progress = { scenario: 0, pathEvents: 0, terrain: 0 }
     this._title = ''
     this._introText = ''
-    this._introTarget = '' // full text to write toward
-    this._pathPoints = this._generateFallbackPath()
+    this._introTarget = ''
     this._charIndex = 0
-    this._drawnPathSegments = 0
+    this._page2CharIndex = 0
+    this._pathPoints = this._defaultPath()
+    this._drawnSegs = 0
 
+    this._group = new THREE.Group()
+    this._scene.add(this._group)
     this._build()
   }
 
-  _generateFallbackPath() {
-    const pts = []
-    let px = 256, py = 660
+  _defaultPath() {
+    const pts = []; let px = 256, py = 660
     for (let i = 0; i < 10; i++) {
-      const nx = 50 + Math.random() * 410
-      const ny = py - 40 - Math.random() * 25
-      pts.push({ x: px, y: py, nx, ny })
-      px = nx; py = ny
+      const nx = 60 + Math.random() * 400, ny = py - 40 - Math.random() * 25
+      pts.push({ x: px, y: py, nx, ny }); px = nx; py = ny
     }
     return pts
   }
 
   _build() {
-    // ─── BOOK BODY ───
-    this._book = new THREE.Mesh(
-      new THREE.BoxGeometry(3.0, 0.12, 2.2),
-      new THREE.MeshStandardMaterial({ color: 0x4a2a10, roughness: 0.8 })
-    )
-    this._group.add(this._book)
+    // ─── PEDESTAL ───
+    const pedGeo = new THREE.CylinderGeometry(0.6, 0.8, 1.2, 8)
+    const pedMat = new THREE.MeshStandardMaterial({ color: 0x3a3a38, roughness: 0.6, metalness: 0.2 })
+    this._pedestal = new THREE.Mesh(pedGeo, pedMat)
+    this._pedestal.position.y = -0.6
+    this._group.add(this._pedestal)
 
-    // ─── COVER (pivots on left edge) ───
+    // Pedestal light (warm glow from below)
+    const pedLight = new THREE.PointLight(0xffcc66, 3, 5)
+    pedLight.position.set(0, 0.5, 0)
+    this._group.add(pedLight)
+
+    // Spot from above
+    const spot = new THREE.SpotLight(0xffeedd, 2, 8, 0.5, 0.5)
+    spot.position.set(0, 4, 0)
+    spot.target = this._pedestal
+    this._group.add(spot)
+
+    this._group.add(new THREE.AmbientLight(0x222222, 0.5))
+
+    // ─── BOOK (on pedestal, no title — worn leather) ───
+    const bookBase = new THREE.Mesh(
+      new THREE.BoxGeometry(2.8, 0.1, 2.0),
+      new THREE.MeshStandardMaterial({ color: 0x3a2815, roughness: 0.9 })
+    )
+    bookBase.position.y = 0.05
+    this._group.add(bookBase)
+
+    // Cover (pivots left edge)
     this._coverPivot = new THREE.Group()
-    this._coverPivot.position.set(-1.5, 0.07, 0)
+    this._coverPivot.position.set(-1.4, 0.06, 0)
     this._cover = new THREE.Mesh(
-      new THREE.BoxGeometry(3.0, 0.04, 2.2),
-      new THREE.MeshStandardMaterial({ color: 0x5a3a1a, roughness: 0.7 })
+      new THREE.BoxGeometry(2.8, 0.04, 2.0),
+      new THREE.MeshStandardMaterial({ color: 0x4a3018, roughness: 0.85 })
     )
-    this._cover.position.set(1.5, 0, 0)
-    // Title label on cover
-    const lc = document.createElement('canvas'); lc.width = 512; lc.height = 64
-    const lcx = lc.getContext('2d')
-    lcx.fillStyle = '#d4c5a0'; lcx.fillRect(0, 0, 512, 64)
-    lcx.fillStyle = '#3a2510'; lcx.font = 'bold 28px Georgia,serif'; lcx.textAlign = 'center'
-    lcx.fillText('M.E.R.L.I.N.', 256, 42)
-    const labelMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(2.0, 0.3),
-      new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(lc), transparent: true })
-    )
-    labelMesh.rotation.x = -Math.PI / 2; labelMesh.position.y = 0.025
-    this._cover.add(labelMesh)
+    this._cover.position.set(1.4, 0, 0)
     this._coverPivot.add(this._cover)
     this._group.add(this._coverPivot)
 
-    // ─── LEFT PAGE (scenario text) ───
-    this._pageCv = document.createElement('canvas'); this._pageCv.width = 512; this._pageCv.height = 720
-    this._pageCx = this._pageCv.getContext('2d')
-    this._pageTex = new THREE.CanvasTexture(this._pageCv)
-    this._pageLeft = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.4, 2.0),
-      new THREE.MeshBasicMaterial({ map: this._pageTex })
+    // ─── RIGHT PAGE (first: scenario text, then: map after turn) ───
+    this._rCv = document.createElement('canvas'); this._rCv.width = 512; this._rCv.height = 720
+    this._rCx = this._rCv.getContext('2d')
+    this._rTex = new THREE.CanvasTexture(this._rCv)
+    this._pageR = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.3, 1.85),
+      new THREE.MeshBasicMaterial({ map: this._rTex })
     )
-    this._pageLeft.rotation.x = -Math.PI / 2
-    this._pageLeft.position.set(-0.75, 0.08, 0)
-    this._pageLeft.visible = false
-    this._group.add(this._pageLeft)
+    this._pageR.rotation.x = -Math.PI / 2
+    this._pageR.position.set(0.7, 0.07, 0)
+    this._pageR.visible = false
+    this._group.add(this._pageR)
 
-    // ─── RIGHT PAGE (map) ───
-    this._mapCv = document.createElement('canvas'); this._mapCv.width = 512; this._mapCv.height = 720
-    this._mapCx = this._mapCv.getContext('2d')
-    this._mapTex = new THREE.CanvasTexture(this._mapCv)
-    this._pageRight = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.4, 2.0),
-      new THREE.MeshBasicMaterial({ map: this._mapTex })
+    // ─── LEFT PAGE (visible after page turn — scenario continues) ───
+    this._lCv = document.createElement('canvas'); this._lCv.width = 512; this._lCv.height = 720
+    this._lCx = this._lCv.getContext('2d')
+    this._lTex = new THREE.CanvasTexture(this._lCv)
+    this._pageL = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.3, 1.85),
+      new THREE.MeshBasicMaterial({ map: this._lTex })
     )
-    this._pageRight.rotation.x = -Math.PI / 2
-    this._pageRight.position.set(0.75, 0.08, 0)
-    this._pageRight.visible = false
-    this._group.add(this._pageRight)
+    this._pageL.rotation.x = -Math.PI / 2
+    this._pageL.position.set(-0.7, 0.07, 0)
+    this._pageL.visible = false
+    this._group.add(this._pageL)
 
     // ─── QUILL ───
     const q = new THREE.Group()
-    q.add(new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.08, 4), new THREE.MeshStandardMaterial({ color: 0x222222 })))
-    q.children[0].position.y = -0.04
-    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.015, 0.35, 5), new THREE.MeshStandardMaterial({ color: 0xccbb88 }))
-    shaft.position.y = 0.14; q.add(shaft)
-    const feather = new THREE.Mesh(new THREE.PlaneGeometry(0.08, 0.2), new THREE.MeshBasicMaterial({ color: 0xf0f0f0, side: THREE.DoubleSide, transparent: true, opacity: 0.8 }))
-    feather.position.set(0.03, 0.28, 0); feather.rotation.z = 0.3; q.add(feather)
+    q.add(Object.assign(new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.08, 4), new THREE.MeshStandardMaterial({ color: 0x111111 })), { position: new THREE.Vector3(0, -0.04, 0) }))
+    q.add(Object.assign(new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.015, 0.35, 5), new THREE.MeshStandardMaterial({ color: 0xccbb88 })), { position: new THREE.Vector3(0, 0.14, 0) }))
+    const f = new THREE.Mesh(new THREE.PlaneGeometry(0.08, 0.2), new THREE.MeshBasicMaterial({ color: 0xf0f0f0, side: THREE.DoubleSide, transparent: true, opacity: 0.8 }))
+    f.position.set(0.03, 0.28, 0); f.rotation.z = 0.3; q.add(f)
     this._quill = q; this._quill.visible = false
     this._quill.rotation.x = -0.5; this._quill.rotation.z = 0.2
     this._group.add(this._quill)
 
-    // ─── LIGHTS ───
-    this._group.add(new THREE.PointLight(0xffcc88, 2, 8).translateY(3).translateZ(1))
-    this._group.add(new THREE.AmbientLight(0x333333, 0.8))
+    // ─── Initial camera: far back, looking at pedestal ───
+    this._camera.position.set(0, 2, 5)
+    this._camera.lookAt(0, 0.5, 0)
 
-    // ─── Initial state ───
-    this._group.position.set(0, 0, 0)
-    this._group.scale.setScalar(0.01)
-    this._clearPage(); this._clearMap()
-
-    // ─── DOM ───
-    this._skipBtn = this._makeBtn('Passer ▶▶', 'bottom:20px;right:20px', () => this.skip())
-    this._arrowBtn = this._makeBtn('Entrer dans la forêt ▶', 'bottom:40px;left:50%;transform:translateX(-50%)', () => {
-      this._state = STATES.FREEFALL; this._t = 0
+    // ─── DOM buttons ───
+    this._turnBtn = this._btn('Tourner la page ▶', 'bottom:40px;left:50%;transform:translateX(-50%);display:none;border:1px solid #ffcc44;color:#ffcc44;', () => {
+      this._turnBtn.style.display = 'none'; this._state = STATES.PAGE_TURN; this._t = 0
     })
-    this._arrowBtn.style.display = 'none'
-    this._arrowBtn.style.cssText += ';border:2px solid #33ff66;color:#33ff66;font-size:18px;padding:14px 28px;'
+    this._startBtn = this._btn('Commencer l\'aventure ▶', 'bottom:40px;left:50%;transform:translateX(-50%);display:none;border:2px solid #33ff66;color:#33ff66;font-size:16px;padding:12px 24px;', () => {
+      this._startBtn.style.display = 'none'; this._state = STATES.ORBIT_MAP; this._t = 0
+    })
+    this._skipBtn = this._btn('Passer ▶▶', 'bottom:16px;right:16px;', () => this.skip())
   }
 
-  _makeBtn(text, pos, onClick) {
+  _btn(text, extra, onClick) {
     const b = document.createElement('button'); b.textContent = text
-    b.style.cssText = `position:fixed;${pos};z-index:200;padding:8px 16px;border-radius:6px;cursor:pointer;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.5);font:13px VT323,monospace;`
+    b.style.cssText = `position:fixed;z-index:200;padding:10px 18px;border-radius:8px;cursor:pointer;background:rgba(0,0,0,0.7);font:14px VT323,monospace;${extra}`
     b.addEventListener('click', onClick); document.body.appendChild(b); return b
   }
 
-  // ─── PROGRESS CALLBACKS (called from main.js as data arrives) ───
-  onTitleReady(title) {
-    if (title) { this._title = title; this._progress.scenario = Math.max(this._progress.scenario, 0.2) }
-  }
-  onIntroReady(text) {
-    if (text) { this._introTarget = text; this._progress.scenario = Math.max(this._progress.scenario, 0.3) }
-  }
-  onIntroProgress(fraction) {
-    // Called as LLM streams characters (0→1)
-    this._progress.scenario = 0.3 + fraction * 0.7
-  }
+  // ─── Progress callbacks ───
+  onTitleReady(t) { if (t) this._title = t; this._progress.scenario = Math.max(this._progress.scenario, 0.2) }
+  onIntroReady(t) { if (t) this._introTarget = t; this._progress.scenario = Math.max(this._progress.scenario, 0.3) }
+  onIntroProgress(f) { this._progress.scenario = 0.3 + f * 0.7 }
   onPathReady(events) {
     if (events?.length) {
       this._pathPoints = []; let px = 256, py = 660
@@ -169,208 +163,199 @@ export class BookCinematic {
     this._progress.pathEvents = 1.0
   }
   onTerrainReady() { this._progress.terrain = 1.0 }
-  onAssetsReady() { this._progress.assets = 1.0 }
+  onAssetsReady() {}
   setOnComplete(fn) { this._onComplete = fn }
 
-  // ─── Canvas helpers ───
-  _clearPage() {
-    const cx = this._pageCx
+  // ─── Canvas ───
+  _blankPage(cx) {
     cx.fillStyle = '#ede4d0'; cx.fillRect(0, 0, 512, 720)
-    cx.strokeStyle = 'rgba(150,130,100,0.1)'; cx.lineWidth = 0.5
-    for (let y = 70; y < 700; y += 22) { cx.beginPath(); cx.moveTo(35, y); cx.lineTo(477, y); cx.stroke() }
-    this._pageTex.needsUpdate = true
+    cx.strokeStyle = 'rgba(140,120,90,0.08)'; cx.lineWidth = 0.5
+    for (let y = 60; y < 700; y += 20) { cx.beginPath(); cx.moveTo(30, y); cx.lineTo(482, y); cx.stroke() }
   }
 
-  _clearMap() {
-    const cx = this._mapCx
-    cx.fillStyle = '#d8cba8'; cx.fillRect(0, 0, 512, 720)
-    cx.strokeStyle = '#8a7040'; cx.lineWidth = 2; cx.strokeRect(10, 10, 492, 700)
-    cx.fillStyle = '#5a4a30'; cx.font = 'bold 16px Georgia,serif'
-    cx.textAlign = 'center'; cx.fillText('Carte de la Quête', 256, 35); cx.textAlign = 'left'
-    this._mapTex.needsUpdate = true
-  }
-
-  _renderPage() {
-    this._clearPage()
-    const cx = this._pageCx
-    const text = this._introTarget || this._introText
-    const chars = Math.min(Math.floor(this._charIndex), text.length)
-    const visible = text.substring(0, chars)
-
+  _writeText(cx, tex, title, text, maxChars) {
+    this._blankPage(cx)
+    const n = Math.min(Math.floor(maxChars), text.length)
     // Title
-    if (this._title) {
-      cx.fillStyle = '#3a2510'; cx.font = 'bold 20px Georgia,serif'
-      cx.textAlign = 'center'; cx.fillText(this._title, 256, 45); cx.textAlign = 'left'
-      cx.strokeStyle = '#8a7040'; cx.lineWidth = 1; cx.beginPath(); cx.moveTo(80, 56); cx.lineTo(432, 56); cx.stroke()
+    if (title) {
+      cx.fillStyle = '#2a1a08'; cx.font = 'bold 22px Georgia,serif'
+      cx.textAlign = 'center'; cx.fillText(title, 256, 42); cx.textAlign = 'left'
+      cx.strokeStyle = '#8a7040'; cx.lineWidth = 1; cx.beginPath(); cx.moveTo(80, 52); cx.lineTo(432, 52); cx.stroke()
     }
-
     // Body
-    cx.fillStyle = '#4a3520'; cx.font = 'italic 13px Georgia,serif'
-    const words = visible.split(' ')
-    let line = '', y = 75
+    cx.fillStyle = '#1a1208'; cx.font = '14px Georgia,serif'
+    const words = text.substring(0, n).split(' ')
+    let line = '', y = 72
     for (const w of words) {
-      const test = line + w + ' '
-      if (cx.measureText(test).width > 430) { cx.fillText(line.trim(), 40, y); line = w + ' '; y += 20; if (y > 710) break }
-      else line = test
+      const t = line + w + ' '
+      if (cx.measureText(t).width > 440) { cx.fillText(line.trim(), 35, y); line = w + ' '; y += 20; if (y > 710) break }
+      else line = t
     }
-    if (line.trim()) cx.fillText(line.trim(), 40, y)
-
+    if (line.trim()) cx.fillText(line.trim(), 35, y)
     // Cursor
-    if (chars < text.length) { cx.fillRect(40 + cx.measureText(line.trim()).width + 2, y - 9, 1.5, 11) }
-    this._pageTex.needsUpdate = true
+    if (n < text.length) cx.fillRect(35 + cx.measureText(line.trim()).width + 2, y - 10, 1.5, 12)
+    tex.needsUpdate = true
   }
 
-  _renderMap(segments) {
-    this._clearMap()
-    const cx = this._mapCx, pts = this._pathPoints
-    cx.strokeStyle = '#5a4a2a'; cx.lineWidth = 2.5; cx.lineCap = 'round'
-    for (let i = 0; i < segments && i < pts.length; i++) {
+  _drawMap(cx, tex, segs) {
+    this._blankPage(cx)
+    const pts = this._pathPoints
+    cx.fillStyle = '#5a4a30'; cx.font = 'bold 14px Georgia,serif'
+    cx.textAlign = 'center'; cx.fillText('Carte de la Quête', 256, 30); cx.textAlign = 'left'
+    cx.strokeStyle = '#4a3a20'; cx.lineWidth = 2.5; cx.lineCap = 'round'
+    for (let i = 0; i < segs && i < pts.length; i++) {
       const p = pts[i]
       cx.beginPath(); cx.moveTo(p.x, p.y)
-      cx.quadraticCurveTo((p.x + p.nx) / 2 + (Math.random() - 0.5) * 15, (p.y + p.ny) / 2, p.nx, p.ny)
+      cx.quadraticCurveTo((p.x+p.nx)/2 + (Math.random()-0.5)*15, (p.y+p.ny)/2, p.nx, p.ny)
       cx.stroke()
-      cx.beginPath(); cx.arc(p.nx, p.ny, 5, 0, Math.PI * 2)
-      cx.fillStyle = i % 3 === 0 ? '#cc6633' : '#33aa55'; cx.fill()
-      cx.strokeStyle = '#5a4a2a'; cx.lineWidth = 2.5
+      cx.beginPath(); cx.arc(p.nx, p.ny, 4, 0, Math.PI*2)
+      cx.fillStyle = i%3===0 ? '#cc6633' : '#2a8a3a'; cx.fill()
+      cx.strokeStyle = '#4a3a20'; cx.lineWidth = 2.5
     }
-    if (pts.length) { cx.beginPath(); cx.arc(pts[0].x, pts[0].y, 7, 0, Math.PI * 2); cx.fillStyle = '#cc3333'; cx.fill() }
-    this._mapTex.needsUpdate = true
+    if (pts.length) { cx.beginPath(); cx.arc(pts[0].x, pts[0].y, 6, 0, Math.PI*2); cx.fillStyle = '#cc2222'; cx.fill() }
+    tex.needsUpdate = true
   }
 
-  // ─── UPDATE (every frame) ───
+  // ─── UPDATE ───
   update(dt) {
     this._t += dt
     const s = this._state, cam = this._camera, p = this._progress
 
-    // ═══ BOOK_APPEAR (3s fixed) ═══
-    if (s === STATES.BOOK_APPEAR) {
-      const t = Math.min(1, this._t / 3.0), e = easeOut(t)
-      this._group.scale.setScalar(e)
-      this._group.rotation.y = (1 - e) * 0.4
-      cam.position.set(0, 3 - e * 0.5, 2.5 - e * 0.3); cam.lookAt(0, 0, 0)
+    // ═══ APPROACH (3s): camera approaches pedestal ═══
+    if (s === STATES.APPROACH) {
+      const t = Math.min(1, this._t / 3), e = ease(t)
+      cam.position.lerpVectors(new THREE.Vector3(0, 2.5, 5), new THREE.Vector3(0, 2.0, 2.0), e)
+      cam.lookAt(0, 0.3, 0)
+      this._group.scale.setScalar(0.5 + e * 0.5) // scale up as we approach
       if (t >= 1) { this._state = STATES.BOOK_OPEN; this._t = 0 }
     }
 
-    // ═══ BOOK_OPEN (3s fixed) ═══
+    // ═══ BOOK_OPEN (3s): cover flips open ═══
     else if (s === STATES.BOOK_OPEN) {
-      const t = Math.min(1, this._t / 3.0), e = easeInOut(t)
+      const t = Math.min(1, this._t / 3), e = easeIO(t)
       this._coverPivot.rotation.x = -Math.PI * e
-      if (e > 0.4) this._pageLeft.visible = true
-      cam.position.y = 2.5 - e * 0.5; cam.lookAt(0, 0, 0)
-      if (t >= 1) { this._cover.visible = false; this._pageLeft.visible = true; this._state = STATES.CAMERA_DOLLY; this._t = 0 }
-    }
-
-    // ═══ CAMERA_DOLLY (2s fixed) ═══
-    else if (s === STATES.CAMERA_DOLLY) {
-      const t = Math.min(1, this._t / 2.0), e = easeInOut(t)
-      cam.position.lerpVectors(new THREE.Vector3(0, 2.0, 2.2), new THREE.Vector3(-0.5, 1.8, 1.2), e)
-      cam.lookAt(-0.5, 0, 0)
-      if (t >= 1) { this._quill.visible = true; this._quill.position.set(-1.2, 0.2, -0.6); this._charIndex = 0; this._state = STATES.WRITE_SCENARIO; this._t = 0 }
-    }
-
-    // ═══ WRITE_SCENARIO (progress-driven) ═══
-    else if (s === STATES.WRITE_SCENARIO) {
-      const text = this._introTarget || this._introText
-      const targetChars = Math.floor(p.scenario * text.length)
-
-      // Typewriter catches up to progress (smooth, 60 chars/sec max)
-      if (this._charIndex < targetChars) {
-        this._charIndex = Math.min(this._charIndex + dt * 60, targetChars)
-      }
-      this._renderPage()
-
-      // Quill follows writing
-      const writeRatio = text.length > 0 ? this._charIndex / text.length : 0
-      this._quill.position.x = -1.1 + Math.sin(this._t * 3) * 0.15
-      this._quill.position.z = -0.8 + writeRatio * 1.2
-      this._quill.position.y = 0.15
-
-      // Quill trembles if waiting for LLM
-      if (this._charIndex >= targetChars && p.scenario < 1.0) {
-        this._quill.position.x += Math.sin(this._t * 15) * 0.005
-        this._quill.position.z += Math.cos(this._t * 12) * 0.003
-      }
-
-      // Fallback: if stuck > 8s with no progress, force complete
-      if (this._t > 8 && p.scenario < 0.5) {
-        this._introTarget = this._introText // use fallback
-        p.scenario = 1.0
-      }
-
-      // Transition when scenario fully written
-      if (this._charIndex >= text.length && p.scenario >= 1.0) {
-        this._state = STATES.MAP_APPEAR; this._t = 0
+      if (e > 0.4) this._pageR.visible = true
+      cam.position.lerp(new THREE.Vector3(0, 1.8, 1.5), dt * 1.5)
+      cam.lookAt(0.5, 0, 0) // look at right page
+      if (t >= 1) {
+        this._cover.visible = false; this._pageR.visible = true
+        this._quill.visible = true; this._quill.position.set(0.3, 0.2, -0.6)
+        this._charIndex = 0; this._blankPage(this._rCx)
+        this._state = STATES.WRITE_PAGE1; this._t = 0
       }
     }
 
-    // ═══ MAP_APPEAR (1s fixed) ═══
-    else if (s === STATES.MAP_APPEAR) {
-      this._pageRight.visible = true
-      const t = Math.min(1, this._t / 1.0), e = easeOut(t)
-      this._pageRight.position.y = 0.08 + (1 - e) * 0.5
-      cam.position.lerp(new THREE.Vector3(0, 2.0, 1.5), dt * 2); cam.lookAt(0, 0, 0)
-      if (t >= 1) { this._drawnPathSegments = 0; this._state = STATES.DRAW_PATH; this._t = 0 }
+    // ═══ WRITE_PAGE1 (progress-driven): quill writes on RIGHT page ═══
+    else if (s === STATES.WRITE_PAGE1) {
+      const text = this._introTarget || this._introText || 'La forêt attend...'
+      const target = Math.floor(Math.min(p.scenario, 1) * text.length * 0.5) // first half on page 1
+      if (this._charIndex < target) this._charIndex = Math.min(this._charIndex + dt * 50, target)
+      this._writeText(this._rCx, this._rTex, this._title, text, this._charIndex)
+
+      // Quill animation
+      const wr = text.length > 0 ? this._charIndex / text.length : 0
+      this._quill.position.set(0.3 + Math.sin(this._t * 3) * 0.1, 0.12, -0.7 + wr * 1.0)
+
+      // Quill trembles if waiting
+      if (this._charIndex >= target && p.scenario < 0.6) {
+        this._quill.position.x += Math.sin(this._t * 15) * 0.003
+      }
+
+      // Show turn button when first half written
+      if (this._charIndex >= target && p.scenario >= 0.5) {
+        this._turnBtn.style.display = 'block'
+        if (this._t > 10 && p.scenario < 0.5) p.scenario = 0.5 // fallback
+      }
+
+      // Fallback: force after 12s
+      if (this._t > 12) { this._turnBtn.style.display = 'block' }
     }
 
-    // ═══ DRAW_PATH (progress-driven by pathEvents) ═══
-    else if (s === STATES.DRAW_PATH) {
-      const totalSegs = this._pathPoints.length
-      const targetSegs = Math.floor(p.pathEvents * totalSegs)
+    // ═══ WAIT_TURN: waiting for player click ═══
+    else if (s === STATES.WAIT_TURN) { /* handled by button click */ }
 
-      // Smoothly catch up (3 segments/sec max for visual effect)
-      if (this._drawnPathSegments < targetSegs) {
-        this._drawnPathSegments = Math.min(this._drawnPathSegments + dt * 3, targetSegs)
+    // ═══ PAGE_TURN (1.5s): animated flip ═══
+    else if (s === STATES.PAGE_TURN) {
+      const t = Math.min(1, this._t / 1.5), e = easeIO(t)
+      // Simple visual: right page fades, left page appears
+      this._pageR.material.opacity = 1 - e * 0.3
+      if (e > 0.5) {
+        this._pageL.visible = true
+        this._pageL.material.opacity = (e - 0.5) * 2
       }
-      this._renderMap(Math.floor(this._drawnPathSegments))
-
-      // Quill draws on map
-      this._quill.position.set(0.4 + Math.sin(this._t * 2) * 0.2, 0.15, -0.5 + (this._drawnPathSegments / totalSegs) * 0.8)
-      cam.position.lerp(new THREE.Vector3(0.5, 1.6, 1.3), dt); cam.lookAt(0.3, 0, 0)
-
-      // Fallback: if no events after 6s, use default path
-      if (this._t > 6 && p.pathEvents < 0.5) { p.pathEvents = 1.0 }
-
-      if (this._drawnPathSegments >= totalSegs && p.pathEvents >= 1.0) {
-        this._state = STATES.COLOR_BIOME; this._t = 0
+      if (t >= 1) {
+        // Left page = scenario continues, Right page = blank (will become map)
+        this._blankPage(this._rCx); this._rTex.needsUpdate = true
+        this._pageR.material.opacity = 1
+        this._pageL.material.opacity = 1
+        this._page2CharIndex = 0
+        this._state = STATES.WRITE_PAGE2; this._t = 0
       }
     }
 
-    // ═══ COLOR_BIOME (progress-driven by terrain ready) ═══
-    else if (s === STATES.COLOR_BIOME) {
-      // Aquarelle effect on map as terrain loads
-      const cx = this._mapCx
-      const colorProgress = Math.min(1, p.terrain + this._t * 0.1) // slow auto-advance
-      const paintY = 720 - colorProgress * 680
-      if (Math.random() > 0.5) {
-        for (let y = 710; y > paintY; y -= 8) {
-          for (let x = 20; x < 492; x += 12) {
-            const g = 80 + Math.random() * 60
-            cx.fillStyle = `rgba(${60 + Math.random() * 30},${g},${40 + Math.random() * 20},0.03)`
-            cx.fillRect(x + (Math.random() - 0.5) * 4, y, 8, 8)
-          }
-        }
-        this._mapTex.needsUpdate = true
-      }
+    // ═══ WRITE_PAGE2 (progress-driven): scenario continues on LEFT ═══
+    else if (s === STATES.WRITE_PAGE2) {
+      const text = this._introTarget || this._introText || ''
+      const halfLen = Math.floor(text.length * 0.5)
+      const page2Text = text.substring(halfLen)
+      const target = Math.floor(Math.min(p.scenario, 1) * page2Text.length)
+      if (this._page2CharIndex < target) this._page2CharIndex = Math.min(this._page2CharIndex + dt * 50, target)
+      this._writeText(this._lCx, this._lTex, '', page2Text, this._page2CharIndex)
 
-      // Fallback: if terrain never ready, advance after 4s
-      if (this._t > 4 || p.terrain >= 1.0) {
+      // Quill on left page
+      this._quill.position.set(-0.7 + Math.sin(this._t * 3) * 0.1, 0.12, -0.7 + (this._page2CharIndex / Math.max(1, page2Text.length)) * 1.0)
+      cam.position.lerp(new THREE.Vector3(-0.3, 1.8, 1.3), dt)
+      cam.lookAt(-0.3, 0, 0)
+
+      // When done → draw map
+      if ((this._page2CharIndex >= page2Text.length && p.scenario >= 1) || this._t > 10) {
+        this._state = STATES.DRAW_MAP; this._t = 0; this._drawnSegs = 0
+        // Reset right page for map
+        this._blankPage(this._rCx); this._rTex.needsUpdate = true
+      }
+    }
+
+    // ═══ DRAW_MAP (progress-driven): quill draws path on RIGHT ═══
+    else if (s === STATES.DRAW_MAP) {
+      const total = this._pathPoints.length
+      const targetSegs = Math.floor(p.pathEvents * total)
+      if (this._drawnSegs < targetSegs) this._drawnSegs = Math.min(this._drawnSegs + dt * 3, targetSegs)
+      else if (this._t > 6) this._drawnSegs = total // fallback
+      this._drawMap(this._rCx, this._rTex, Math.floor(this._drawnSegs))
+
+      this._quill.position.set(0.4 + Math.sin(this._t * 2) * 0.15, 0.12, -0.5 + (this._drawnSegs / total) * 0.8)
+      cam.position.lerp(new THREE.Vector3(0.3, 1.8, 1.3), dt)
+      cam.lookAt(0.3, 0, 0)
+
+      if (this._drawnSegs >= total) {
         this._quill.visible = false
-        this._arrowBtn.style.display = 'block'
-        this._state = STATES.WAIT_CLICK; this._t = 0
+        this._startBtn.style.display = 'block'
+        this._state = STATES.WAIT_START; this._t = 0
       }
     }
 
-    // ═══ WAIT_CLICK ═══
-    else if (s === STATES.WAIT_CLICK) {
-      cam.position.y = 1.6 + Math.sin(this._t * 0.5) * 0.02
+    // ═══ WAIT_START ═══
+    else if (s === STATES.WAIT_START) {
+      cam.position.y = 1.8 + Math.sin(this._t * 0.4) * 0.02
     }
 
-    // ═══ FREEFALL (2.5s fixed) ═══
-    else if (s === STATES.FREEFALL) {
-      this._arrowBtn.style.display = 'none'
-      const t = Math.min(1, this._t / 2.5), e = easeInOut(t)
-      if (t < 0.5) { cam.position.lerp(new THREE.Vector3(0.75, 0.5, 0.3), e * 0.15); cam.lookAt(0.75, 0, 0) }
-      else { this._group.scale.setScalar(Math.max(0.01, 1 - (t - 0.5) * 2)); this._group.position.y -= dt * 3 }
+    // ═══ ORBIT_MAP (2s): camera orbits above map ═══
+    else if (s === STATES.ORBIT_MAP) {
+      const t = Math.min(1, this._t / 2), e = ease(t)
+      // Camera rises and centers over the right page (map)
+      cam.position.lerpVectors(new THREE.Vector3(0.3, 1.8, 1.3), new THREE.Vector3(0.7, 2.5, 0.3), e)
+      cam.lookAt(0.7, 0, 0) // directly above map
+      if (t >= 1) { this._state = STATES.FALL_IN; this._t = 0 }
+    }
+
+    // ═══ FALL_IN (2s): fall into map → done ═══
+    else if (s === STATES.FALL_IN) {
+      const t = Math.min(1, this._t / 2), e = easeIO(t)
+      // Camera plunges toward the map
+      cam.position.y = 2.5 - e * 3 // falls through the map
+      cam.position.z = 0.3 - e * 0.3
+      // Book fades
+      this._group.traverse(o => { if (o.material && o.material.opacity !== undefined) o.material.opacity = 1 - e })
       if (t >= 1) { this._state = STATES.DONE; this._cleanup(); this._onComplete?.() }
     }
   }
@@ -381,7 +366,7 @@ export class BookCinematic {
   _cleanup() {
     this._state = STATES.DONE
     this._scene.remove(this._group)
-    this._skipBtn?.remove(); this._arrowBtn?.remove()
+    this._skipBtn?.remove(); this._turnBtn?.remove(); this._startBtn?.remove()
     this._group.traverse(o => { o.geometry?.dispose(); if (o.material) { o.material.map?.dispose(); o.material.dispose() } })
   }
 }
