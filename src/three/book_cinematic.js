@@ -106,10 +106,15 @@ export class BookCinematic {
     grd.addColorStop(0, 'rgba(255,200,100,0.06)'); grd.addColorStop(1, 'rgba(0,0,0,0)')
     cx.fillStyle = grd; cx.fillRect(0, 0, W, H)
 
-    // Pedestal
+    // Pedestal with stone texture
     cx.fillStyle = '#2a2a28'
     cx.beginPath(); cx.ellipse(W/2, b.y+b.h+12, b.w*0.38, 14, 0, 0, Math.PI*2); cx.fill()
     cx.fillStyle = '#353533'; cx.fillRect(W/2-b.w*0.28, b.y+b.h, b.w*0.56, 18)
+    // Stone grain
+    for (let i = 0; i < 15; i++) {
+      cx.fillStyle = `rgba(${60+Math.random()*30},${60+Math.random()*30},${58+Math.random()*20},0.15)`
+      cx.fillRect(W/2-b.w*0.28+Math.random()*b.w*0.56, b.y+b.h+Math.random()*18, 3+Math.random()*8, 2)
+    }
 
     // Shadow under book
     cx.fillStyle = 'rgba(0,0,0,0.3)'
@@ -120,55 +125,79 @@ export class BookCinematic {
 
     // LEFT side
     if (co > 0.5) {
-      // Page visible
-      cx.fillStyle = '#ede4d0'; cx.fillRect(b.x, b.y, b.w/2-3, b.h)
-      cx.strokeStyle = '#c0b090'; cx.lineWidth = 0.5; cx.strokeRect(b.x, b.y, b.w/2-3, b.h)
-      // Subtle lines
-      cx.strokeStyle = 'rgba(160,140,110,0.06)'
-      for (let ly = b.y+20; ly < b.y+b.h-10; ly += 14) { cx.beginPath(); cx.moveTo(b.x+10,ly); cx.lineTo(b.x+b.w/2-13,ly); cx.stroke() }
+      this._drawAgedPage(cx, b.x, b.y, b.w/2-3, b.h)
     } else {
-      cx.fillStyle = '#4a2a12'; cx.fillRect(b.x, b.y, b.w/2-3, b.h)
+      this._drawLeatherSurface(cx, b.x, b.y, b.w/2-3, b.h)
     }
 
     // RIGHT page (always visible when cover > 0.3)
     if (co > 0.3) {
-      cx.fillStyle = '#ede4d0'; cx.fillRect(W/2+3, b.y, b.w/2-3, b.h)
-      cx.strokeStyle = '#c0b090'; cx.lineWidth = 0.5; cx.strokeRect(W/2+3, b.y, b.w/2-3, b.h)
-      cx.strokeStyle = 'rgba(160,140,110,0.06)'
-      for (let ly = b.y+20; ly < b.y+b.h-10; ly += 14) { cx.beginPath(); cx.moveTo(W/2+13,ly); cx.lineTo(W/2+b.w/2-10,ly); cx.stroke() }
+      this._drawAgedPage(cx, W/2+3, b.y, b.w/2-3, b.h)
     }
 
-    // COVER (3D perspective simulation via trapezoid)
+    // COVER (3D perspective simulation via trapezoid + leather texture)
     if (co < 1) {
       const coverW = (b.w/2-3) * (1-co)
-      const skew = co * b.h * 0.08 // perspective skew
-      cx.fillStyle = '#5a3418'
+      const skew = co * b.h * 0.08
+      cx.save()
       cx.beginPath()
-      cx.moveTo(W/2+3, b.y + skew)
-      cx.lineTo(W/2+3+coverW, b.y)
-      cx.lineTo(W/2+3+coverW, b.y+b.h)
-      cx.lineTo(W/2+3, b.y+b.h - skew)
-      cx.closePath(); cx.fill()
-      // Highlight on cover edge
-      cx.fillStyle = 'rgba(255,220,150,0.06)'
-      cx.beginPath()
-      cx.moveTo(W/2+3, b.y+skew); cx.lineTo(W/2+3+coverW*0.3, b.y)
-      cx.lineTo(W/2+3+coverW*0.3, b.y+b.h); cx.lineTo(W/2+3, b.y+b.h-skew)
-      cx.closePath(); cx.fill()
+      cx.moveTo(W/2+3, b.y + skew); cx.lineTo(W/2+3+coverW, b.y)
+      cx.lineTo(W/2+3+coverW, b.y+b.h); cx.lineTo(W/2+3, b.y+b.h - skew)
+      cx.closePath(); cx.clip()
+      // Base leather color
+      cx.fillStyle = '#5a3418'; cx.fillRect(W/2+3, b.y, coverW, b.h)
+      // Leather grain
+      for (let i = 0; i < 30; i++) {
+        cx.fillStyle = `rgba(${70+Math.random()*30},${35+Math.random()*20},${15+Math.random()*15},0.12)`
+        const gx = W/2+3+Math.random()*coverW, gy = b.y+Math.random()*b.h
+        cx.fillRect(gx, gy, 2+Math.random()*6, 1+Math.random()*3)
+      }
+      // Worn corners
+      cx.fillStyle = 'rgba(80,50,25,0.15)'
+      cx.beginPath(); cx.arc(W/2+3+coverW, b.y, coverW*0.15, 0, Math.PI*2); cx.fill()
+      cx.beginPath(); cx.arc(W/2+3+coverW, b.y+b.h, coverW*0.15, 0, Math.PI*2); cx.fill()
+      // Edge highlight
+      cx.fillStyle = 'rgba(255,220,150,0.05)'
+      cx.fillRect(W/2+3, b.y+skew, coverW*0.25, b.h-skew*2)
+      cx.restore()
     }
 
-    // Dust particles when opening
+    // Magical particles — dust when opening + ambient fireflies always
     if (co > 0 && co < 1) {
-      for (let i = 0; i < 2; i++) this._dustParticles.push({
-        x: W/2 + Math.random()*b.w*0.3, y: b.y + Math.random()*b.h,
-        vx: (Math.random()-0.5)*0.5, vy: -Math.random()*0.8, life: 1
+      for (let i = 0; i < 4; i++) this._dustParticles.push({
+        x: W/2 + (Math.random()-0.5)*b.w*0.5, y: b.y + Math.random()*b.h,
+        vx: (Math.random()-0.5)*0.8, vy: -0.5-Math.random()*1.2, life: 1,
+        type: Math.random()>0.6 ? 'spark' : 'dust',
+        size: 1+Math.random()*3
+      })
+    }
+    // Ambient floating particles (always)
+    if (Math.random() > 0.85) {
+      this._dustParticles.push({
+        x: b.x-20+Math.random()*(b.w+40), y: b.y+b.h+10,
+        vx: (Math.random()-0.5)*0.3, vy: -0.2-Math.random()*0.4, life: 1,
+        type: 'firefly', size: 1.5+Math.random()*2
       })
     }
     this._dustParticles = this._dustParticles.filter(p => {
-      p.x += p.vx; p.y += p.vy; p.life -= 0.015
+      p.x += p.vx; p.y += p.vy; p.life -= (p.type==='firefly' ? 0.005 : 0.018)
       if (p.life <= 0) return false
-      cx.fillStyle = `rgba(255,220,160,${p.life * 0.3})`
-      cx.beginPath(); cx.arc(p.x, p.y, 1.5 * p.life, 0, Math.PI*2); cx.fill()
+      if (p.type === 'spark') {
+        cx.fillStyle = `rgba(255,200,80,${p.life*0.6})`
+        cx.beginPath(); cx.arc(p.x, p.y, p.size*p.life, 0, Math.PI*2); cx.fill()
+        // Glow
+        cx.fillStyle = `rgba(255,180,50,${p.life*0.15})`
+        cx.beginPath(); cx.arc(p.x, p.y, p.size*p.life*3, 0, Math.PI*2); cx.fill()
+      } else if (p.type === 'firefly') {
+        const flicker = 0.5+Math.sin(this._t*8+p.x)*0.5
+        cx.fillStyle = `rgba(200,255,150,${p.life*0.3*flicker})`
+        cx.beginPath(); cx.arc(p.x, p.y, p.size*flicker, 0, Math.PI*2); cx.fill()
+        cx.fillStyle = `rgba(180,255,120,${p.life*0.08*flicker})`
+        cx.beginPath(); cx.arc(p.x, p.y, p.size*3*flicker, 0, Math.PI*2); cx.fill()
+      } else {
+        cx.fillStyle = `rgba(255,220,160,${p.life*0.25})`
+        cx.beginPath(); cx.arc(p.x, p.y, p.size*p.life, 0, Math.PI*2); cx.fill()
+      }
       return true
     })
 
@@ -179,6 +208,54 @@ export class BookCinematic {
     cx.fillStyle = pGrd; cx.fillRect(b.x-50, b.y, b.w+100, b.h+50)
 
     return b
+  }
+
+  _drawLeatherSurface(cx, x, y, w, h) {
+    cx.fillStyle = '#4a2a12'; cx.fillRect(x, y, w, h)
+    // Leather grain texture
+    for (let i = 0; i < 40; i++) {
+      cx.fillStyle = `rgba(${55+Math.random()*35},${30+Math.random()*20},${12+Math.random()*15},0.1)`
+      cx.fillRect(x+Math.random()*w, y+Math.random()*h, 2+Math.random()*8, 1+Math.random()*3)
+    }
+    // Worn edges
+    cx.fillStyle = 'rgba(80,50,25,0.12)'
+    cx.fillRect(x, y, w, 3); cx.fillRect(x, y+h-3, w, 3)
+    cx.fillRect(x, y, 3, h); cx.fillRect(x+w-3, y, 3, h)
+    // Corner wear
+    for (const [cx2, cy2] of [[x,y],[x+w,y],[x,y+h],[x+w,y+h]]) {
+      cx.beginPath(); cx.arc(cx2, cy2, 8, 0, Math.PI*2)
+      cx.fillStyle = 'rgba(70,45,20,0.15)'; cx.fill()
+    }
+    // Gold-ish border line (subtle)
+    cx.strokeStyle = 'rgba(180,150,80,0.08)'; cx.lineWidth = 1
+    cx.strokeRect(x+6, y+6, w-12, h-12)
+  }
+
+  _drawAgedPage(cx, x, y, w, h) {
+    // Base parchment with gradient (darker at edges)
+    const grad = cx.createLinearGradient(x, y, x, y+h)
+    grad.addColorStop(0, '#e8dcc4'); grad.addColorStop(0.3, '#ede4d0')
+    grad.addColorStop(0.7, '#ede4d0'); grad.addColorStop(1, '#e0d4b8')
+    cx.fillStyle = grad; cx.fillRect(x, y, w, h)
+    // Age spots (random brown dots)
+    for (let i = 0; i < 12; i++) {
+      cx.fillStyle = `rgba(${160+Math.random()*40},${140+Math.random()*30},${100+Math.random()*30},0.06)`
+      cx.beginPath()
+      cx.arc(x+Math.random()*w, y+Math.random()*h, 3+Math.random()*8, 0, Math.PI*2)
+      cx.fill()
+    }
+    // Edge darkening (foxing)
+    cx.fillStyle = 'rgba(180,160,120,0.08)'
+    cx.fillRect(x, y, w, 4); cx.fillRect(x, y+h-4, w, 4)
+    cx.fillRect(x, y, 4, h); cx.fillRect(x+w-4, y, 4, h)
+    // Subtle ruled lines
+    cx.strokeStyle = 'rgba(160,140,110,0.05)'; cx.lineWidth = 0.5
+    for (let ly = y+18; ly < y+h-10; ly += 13) {
+      cx.beginPath(); cx.moveTo(x+8, ly); cx.lineTo(x+w-8, ly); cx.stroke()
+    }
+    // Border
+    cx.strokeStyle = 'rgba(180,160,120,0.15)'; cx.lineWidth = 0.5
+    cx.strokeRect(x, y, w, h)
   }
 
   _drawQuill(cx, x, y) {

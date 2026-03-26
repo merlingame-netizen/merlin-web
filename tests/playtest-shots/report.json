@@ -26,23 +26,16 @@
     "Failed to load resource: the server responded with a status of 502 ()",
     "Failed to load resource: the server responded with a status of 502 ()",
     "Failed to load resource: the server responded with a status of 502 ()",
-    "Failed to load resource: the server responded with a status of 502 ()",
-    "Failed to load resource: the server responded with a status of 502 ()",
-    "Failed to load resource: the server responded with a status of 502 ()",
     "Failed to load resource: the server responded with a status of 502 ()"
   ],
   "consoleWarnings": [
-    "[.WebGL-0x41fc00119b00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-    "[.WebGL-0x41fc00119b00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-    "[.WebGL-0x41fc00119b00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
-    "[.WebGL-0x41fc00119b00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
-    "[Narrator] attempt 0 failed: HTTP 502",
-    "[Narrator] attempt 1 failed: HTTP 502",
-    "[Narrator] attempt 2 failed: HTTP 502",
-    "[Narrator] Using contextual fallback",
-    "[Narrator] attempt 0 failed: HTTP 502",
-    "[Narrator] attempt 0 failed: HTTP 502",
+    "[.WebGL-0x1ffc01004e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x1ffc01004e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x1ffc01004e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x1ffc01004e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
     "[Scenario] Generation failed: HTTP 502",
+    "[Narrator] attempt 0 failed: HTTP 502",
+    "[Narrator] attempt 0 failed: HTTP 502",
     "[Narrator] attempt 1 failed: HTTP 502",
     "[Narrator] attempt 1 failed: HTTP 502",
     "[Narrator] attempt 2 failed: HTTP 502",
@@ -51,7 +44,11 @@
     "[Narrator] Using contextual fallback",
     "[Narrator] attempt 0 failed: HTTP 502",
     "[Scenario] Generation failed: HTTP 502",
-    "[Narrator] attempt 1 failed: HTTP 502"
+    "[Narrator] attempt 1 failed: HTTP 502",
+    "[Narrator] attempt 2 failed: HTTP 502",
+    "[Narrator] Using contextual fallback",
+    "[Narrator] attempt 0 failed: HTTP 502",
+    "[Scenario] Generation failed: HTTP 502"
   ],
   "screenshotCount": 16
 }
