@@ -103,6 +103,10 @@ export class GameScene3D {
         </div>
       </div>
       <div class="g3d-center" id="g3d-center"></div>
+      <div class="g3d-life-bar" id="g3d-life">
+        <div class="g3d-life-label">Essence</div>
+        <div class="g3d-life-hearts" id="g3d-hearts"></div>
+      </div>
       <div class="g3d-sidebar">
         <button class="g3d-btn" id="g3d-save">[ Sauv ]</button>
         <button class="g3d-btn" id="g3d-quit">[ Hub ]</button>
@@ -507,6 +511,19 @@ export class GameScene3D {
         <span style="color:#ffbe33">Jour ${run.day ?? 1} \u00B7 ${cardsInfo}</span>
         <span class="g3d-period-badge" style="color:#aaddaa;margin-left:8px;font-size:0.85em">${season} \u2014 ${period}</span>
       `
+    }
+
+    // Life essence hearts
+    const heartsEl = this._el?.querySelector('#g3d-hearts')
+    if (heartsEl) {
+      const life = run.life_essence ?? 3
+      const maxLife = 5
+      const hearts = []
+      for (let i = 0; i < maxLife; i++) {
+        const filled = i < life
+        hearts.push(`<span class="g3d-heart ${filled ? 'g3d-heart-full' : 'g3d-heart-empty'}">${filled ? '♥' : '♡'}</span>`)
+      }
+      heartsEl.innerHTML = hearts.join('')
     }
 
     // Update period badge if it exists elsewhere

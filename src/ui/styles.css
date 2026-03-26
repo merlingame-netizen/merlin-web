@@ -600,6 +600,33 @@ html, body {
   50% { box-shadow: 0 0 40px rgba(255,190,51,0.25); }
 }
 
+/* === LIFE BAR === */
+.g3d-life-bar {
+  position: fixed; bottom: 16px; left: 16px; z-index: 40;
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-radius: 10px;
+  background: rgba(4, 8, 4, 0.85);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+.g3d-life-label {
+  color: rgba(255, 200, 100, 0.7); font: 11px/1 'VT323', monospace;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.g3d-life-hearts { display: flex; gap: 4px; }
+.g3d-heart {
+  font-size: 20px; transition: transform 0.3s, opacity 0.3s;
+}
+.g3d-heart-full { color: #ff4444; text-shadow: 0 0 6px rgba(255,68,68,0.5); }
+.g3d-heart-empty { color: rgba(255, 255, 255, 0.15); }
+/* Heartbeat animation on damage */
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+}
+.g3d-heart-pulse { animation: heartbeat 0.4s ease-in-out; }
+
 .g3d-hud-bottom {
   position: fixed;
   bottom: 0; left: 0; right: 0;
