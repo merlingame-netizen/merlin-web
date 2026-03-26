@@ -398,14 +398,15 @@ export class BookCinematic {
 
     cx.fillStyle = '#080810'; cx.fillRect(0, 0, W, H)
 
-    // Layout
-    const gap = W * 0.02
-    const totalW = W * 0.88
-    const leftW = totalW * 0.55
-    const rightW = totalW * 0.45
+    // Layout — responsive: side-by-side on wide, stacked on mobile
+    const isMobile = W < 700
+    const gap = isMobile ? 0 : W * 0.02
+    const totalW = W * (isMobile ? 0.94 : 0.88)
+    const leftW = isMobile ? totalW : totalW * 0.55
+    const rightW = isMobile ? totalW : totalW * 0.45
     const leftX = (W - totalW) / 2
-    const rightX = leftX + leftW + gap
-    const centerX = leftX + leftW + gap / 2
+    const rightX = isMobile ? leftX : leftX + leftW + gap
+    const centerX = isMobile ? -999 : leftX + leftW + gap / 2 // hide ornament on mobile
 
     // === SCROLL_APPEAR (2s) ===
     if (s === STATES.SCROLL_APPEAR) {
@@ -413,7 +414,7 @@ export class BookCinematic {
       cx.globalAlpha = Math.min(1, this._t / 1.2)
       const sy = H * 0.15 + (1 - e) * H * 0.2
       this._drawRoll(cx, leftX, sy, leftW)
-      this._drawRoll(cx, rightX, sy, rightW)
+      if (!isMobile) this._drawRoll(cx, rightX, sy, rightW)
       this._drawParticles(cx)
       this._spawnParticles(2, W / 2, sy, 'spark')
       cx.globalAlpha = 1
@@ -430,11 +431,13 @@ export class BookCinematic {
       this._drawRoll(cx, leftX, scrollTop, leftW)
       if (e < 1) this._drawRoll(cx, leftX, scrollTop + scrollH + 12, leftW)
 
-      this._drawParchment(cx, rightX, scrollTop, rightW, scrollH)
-      this._drawRoll(cx, rightX, scrollTop, rightW)
-      if (e < 1) this._drawRoll(cx, rightX, scrollTop + scrollH + 12, rightW)
+      if (!isMobile) {
+        this._drawParchment(cx, rightX, scrollTop, rightW, scrollH)
+        this._drawRoll(cx, rightX, scrollTop, rightW)
+        if (e < 1) this._drawRoll(cx, rightX, scrollTop + scrollH + 12, rightW)
+        this._drawCentralOrnament(cx, centerX, scrollTop, scrollH)
+      }
 
-      this._drawCentralOrnament(cx, centerX, scrollTop, scrollH)
       this._drawParticles(cx)
 
       if (t >= 1) {
@@ -463,25 +466,28 @@ export class BookCinematic {
       // Quill on text
       if (!pos.textDone) this._drawQuill(cx, pos.qx, pos.qy)
 
-      // RIGHT scroll: abstract map
-      this._drawParchment(cx, rightX, scrollTop, rightW, scrollH)
-      this._drawRoll(cx, rightX, scrollTop, rightW)
-
       // Trail progress driven by BOTH text progress and terrain loading
       const terrainFactor = Math.max(this._progress.terrain, this._t * 0.06)
       this._trailProgress = Math.min(1, Math.min(textProgress, terrainFactor))
 
-      cx.save()
-      cx.beginPath(); cx.rect(rightX, scrollTop, rightW, scrollH); cx.clip()
-      this._drawAbstractMap(cx, rightX, scrollTop, rightW, scrollH, this._trailProgress)
-      cx.restore()
+      // RIGHT scroll: abstract map (hidden on mobile — text takes full width)
+      if (!isMobile) {
+        this._drawParchment(cx, rightX, scrollTop, rightW, scrollH)
+        this._drawRoll(cx, rightX, scrollTop, rightW)
 
-      // Central ornament
-      this._drawCentralOrnament(cx, centerX, scrollTop, scrollH)
+        cx.save()
+        cx.beginPath(); cx.rect(rightX, scrollTop, rightW, scrollH); cx.clip()
+        this._drawAbstractMap(cx, rightX, scrollTop, rightW, scrollH, this._trailProgress)
+        cx.restore()
+
+        // Central ornament
+        this._drawCentralOrnament(cx, centerX, scrollTop, scrollH)
+      }
+
       this._drawParticles(cx)
 
-      // Show enter button when text done AND trail complete
-      if (pos.textDone && this._trailProgress >= 0.95) {
+      // Show enter button when text done AND (trail complete OR mobile)
+      if (pos.textDone && (isMobile || this._trailProgress >= 0.95)) {
         this._enterBtn.style.display = 'block'
       }
     }
@@ -498,8 +504,8 @@ export class BookCinematic {
       const focusX = rightX + mapMargin + focusDot.x * (rightW - mapMargin * 2)
       const focusY = H * 0.12 + 25 + focusDot.y * (H * 0.72 - 45)
 
-      if (t < 0.5) {
-        // Phase 1: Zoom into the last dot on the map
+      if (t < 0.5 && !isMobile) {
+        // Phase 1: Zoom into the last dot on the map (desktop only)
         const zoom = 1 + e * 8
         cx.save()
         cx.translate(focusX, focusY); cx.scale(zoom, zoom); cx.translate(-focusX, -focusY)
@@ -511,7 +517,7 @@ export class BookCinematic {
         cx.fillStyle = `rgba(0,0,0,${e * 0.8})`
         cx.fillRect(0, 0, W, H * 0.2 + e * H * 0.15)
         cx.fillRect(0, H * (0.8 - e * 0.15), W, H * 0.2 + e * H * 0.15)
-      } else if (t < 0.65) {
+      } else if ((isMobile && t < 0.4) || (!isMobile && t < 0.65)) {
         // Phase 2: Brief golden flash (transition moment)
         const flashT = (t - 0.5) / 0.15
         const flashAlpha = Math.sin(flashT * Math.PI) * 0.25
@@ -519,13 +525,16 @@ export class BookCinematic {
         cx.fillRect(0, 0, W, H)
       } else {
         // Phase 3: Fade to transparent (3D scene visible underneath)
-        const fadeT = (t - 0.65) / 0.35
-        this._wrapper.style.opacity = String(1 - fadeT)
+        const fadeStart = isMobile ? 0.4 : 0.65
+        const fadeT = (t - fadeStart) / (1 - fadeStart)
+        this._wrapper.style.opacity = String(1 - Math.max(0, fadeT))
         this._wrapper.style.background = 'transparent'
       }
 
       // Dissolving sparks throughout
-      if (t > 0.2) this._spawnParticles(3, focusX + (Math.random() - 0.5) * 60, focusY + (Math.random() - 0.5) * 60, 'spark')
+      const sparkCenter = isMobile ? W / 2 : focusX
+      const sparkCenterY = isMobile ? H / 2 : focusY
+      if (t > 0.15) this._spawnParticles(3, sparkCenter + (Math.random() - 0.5) * 60, sparkCenterY + (Math.random() - 0.5) * 60, 'spark')
       this._drawParticles(cx)
 
       if (t >= 1) { this._state = STATES.DONE; this._cleanup(); this._onComplete?.() }

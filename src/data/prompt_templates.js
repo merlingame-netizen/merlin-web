@@ -73,6 +73,7 @@ Francais UNIQUEMENT. Pas d'anglais. Pas de meta. JAMAIS mentionner "ogham" ou "o
 FORMAT JSON STRICT:
 {
   "title": "Titre poetique du scenario (ex: Le Murmure des Pierres, La Traversee du Ruisseau Noir)",
+  "intro": "Texte d'introduction atmospherique de 400-600 mots. Decris l'ambiance, les sons, les odeurs, les sensations. Utilise des phrases longues et evocatrices. Structure: 1) lieu et ambiance 2) la quete qui attend 3) evoquer poetiquement les rencontres a venir 4) invitation au voyageur. Le texte DOIT etre COMPLET — toujours terminer les phrases.",
   "events": [
     {
       "title": "Titre atmospherique court (3-6 mots)",
