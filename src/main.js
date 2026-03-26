@@ -807,7 +807,7 @@ async function startFirstRun() {
 
   // ─── STEP 2: Create book scene (while screen is black) ───
   const bookScene = new THREE.Scene()
-  bookScene.background = new THREE.Color(0x080808)
+  bookScene.background = new THREE.Color(0x0c0c10) // dark but not pure black
   const bookCam = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 20)
   bookCam.position.set(0, 1.8, 2.5)
   bookCam.lookAt(0, 0, 0)

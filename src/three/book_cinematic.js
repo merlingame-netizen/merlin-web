@@ -60,18 +60,23 @@ export class BookCinematic {
     this._pedestal.position.y = -0.6
     this._group.add(this._pedestal)
 
-    // Pedestal light (warm glow from below)
-    const pedLight = new THREE.PointLight(0xffcc66, 3, 5)
-    pedLight.position.set(0, 0.5, 0)
+    // Strong warm light from above (main illumination)
+    const mainLight = new THREE.PointLight(0xffdd88, 5, 12)
+    mainLight.position.set(0, 3, 0.5)
+    this._group.add(mainLight)
+
+    // Pedestal glow (warm, from below)
+    const pedLight = new THREE.PointLight(0xffcc44, 2, 4)
+    pedLight.position.set(0, 0.3, 0)
     this._group.add(pedLight)
 
-    // Spot from above
-    const spot = new THREE.SpotLight(0xffeedd, 2, 8, 0.5, 0.5)
-    spot.position.set(0, 4, 0)
-    spot.target = this._pedestal
-    this._group.add(spot)
+    // Fill light from camera direction
+    const fillLight = new THREE.PointLight(0xccccff, 1, 8)
+    fillLight.position.set(0, 2, 4)
+    this._group.add(fillLight)
 
-    this._group.add(new THREE.AmbientLight(0x222222, 0.5))
+    // Ambient (brighter for readability)
+    this._group.add(new THREE.AmbientLight(0x444444, 1.0))
 
     // ─── BOOK (on pedestal, no title — worn leather) ───
     const bookBase = new THREE.Mesh(
