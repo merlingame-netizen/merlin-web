@@ -217,6 +217,7 @@ export class LightingSystem {
       mesh.setMatrixAt(i, dummy.matrix)
     }
     mesh.instanceMatrix.needsUpdate = true
+    mesh.frustumCulled = false // visible from aerial camera
     mesh.renderOrder = 1
     this._lights.push(mesh) // Store for disposal
     return mesh

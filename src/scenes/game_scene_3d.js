@@ -266,27 +266,32 @@ export class GameScene3D {
     const startPos = this._pathCamera.getStartPosition()
     const lookTarget = this._pathCamera.getStartLookAt()
 
-    // Biome-specific aerial heights (inspired by DioramaCamera profiles)
+    // Biome aerial heights (capped for fog visibility — monts was 50→32)
     const AERIAL_HEIGHTS = {
-      broceliande: 35, landes: 28, cotes: 40, monts: 50,
-      ile_sein: 25, huelgoat: 30, ecosse: 35, iles_mystiques: 25,
+      broceliande: 30, landes: 25, cotes: 35, monts: 32,
+      ile_sein: 22, huelgoat: 28, ecosse: 30, iles_mystiques: 22,
     }
-    const aerialH = AERIAL_HEIGHTS[biomeKey] || 35
+    const aerialH = AERIAL_HEIGHTS[biomeKey] || 30
     const groundY = startPos.y
 
-    // Phase A (0.8s): Aerial hover — camera high above, slow orbit
-    // (starts during book DIVE fade — player sees ~0.4s after canvas clears)
+    // Reduce fog for aerial phase (terrain invisible at full density)
+    const scene = this._world.getScene()
+    const originalFogDensity = scene.fog?.density || 0
+    if (scene.fog) scene.fog.density = originalFogDensity * 0.3
+
+    // Scale camera offset by height (keep consistent depression angle)
+    const offsetScale = aerialH / 30
     const aerialPos = new THREE.Vector3(
-      startPos.x + 8,
+      startPos.x + 8 * offsetScale,
       groundY + aerialH,
-      startPos.z + 12
+      startPos.z + 12 * offsetScale
     )
     cam.position.copy(aerialPos)
-    cam.fov = 85 // wide aerial FOV
+    cam.fov = 85
     cam.updateProjectionMatrix()
 
     const pathMid = this._pathCamera.getPath()?.getPointAt(0.15) ?? startPos
-    cam.lookAt(pathMid.x, groundY, pathMid.z)
+    cam.lookAt(pathMid.x, groundY + 1.0, pathMid.z) // +1.0 avoids lookAt Y-snap at phase boundary
 
     // Short hover with gentle orbit (0.8s — overlaps with dive fade)
     const hoverStart = performance.now()
@@ -318,9 +323,9 @@ export class GameScene3D {
         // Smoothstep easing (symmetric, no stall at end)
         const e = t * t * (3 - 2 * t)
 
-        // Spiral descent
-        const spiralAngle = e * Math.PI * 0.6
-        const spiralRadius = (1 - e) * 6
+        // Spiral descent — linear radius decay (visible throughout), 270° sweep
+        const spiralAngle = t * Math.PI * 1.5
+        const spiralRadius = (1 - t) * 6
         const posX = descentFrom.x + (descentTarget.x - descentFrom.x) * e + Math.sin(spiralAngle) * spiralRadius
         const posY = descentFrom.y + (descentTarget.y - descentFrom.y) * e
         const posZ = descentFrom.z + (descentTarget.z - descentFrom.z) * e + Math.cos(spiralAngle) * spiralRadius
@@ -331,9 +336,12 @@ export class GameScene3D {
         cam.fov = 85 - 20 * e
         cam.updateProjectionMatrix()
 
+        // Fog gradually restores during descent (aerial=30% → ground=100%)
+        if (scene.fog) scene.fog.density = originalFogDensity * (0.3 + 0.7 * e)
+
         // Look target blends from terrain overview to path ahead
         const lookX = pathMid.x + (lookTarget.x - pathMid.x) * e
-        const lookY = groundY + (lookTarget.y - groundY) * e
+        const lookY = (groundY + 1.0) + (lookTarget.y - groundY - 1.0) * e
         const lookZ = pathMid.z + (lookTarget.z - pathMid.z) * e
         cam.lookAt(lookX, lookY, lookZ)
 
@@ -343,11 +351,12 @@ export class GameScene3D {
       descentLoop()
     })
 
-    // Phase C: Snap to path start and walk immediately (no dead pause)
+    // Phase C: Snap to path start, restore fog, walk immediately
     cam.position.copy(descentTarget)
     cam.fov = 65
     cam.updateProjectionMatrix()
     cam.lookAt(lookTarget)
+    if (scene.fog) scene.fog.density = originalFogDensity
 
     this._started = true
     this._pathCamera.startWalking()

@@ -475,6 +475,7 @@ export class BiomeProps {
 
       instanced.count = placed
       instanced.instanceMatrix.needsUpdate = true
+      instanced.frustumCulled = false // prevent props vanishing from aerial camera
       this._meshes.push(instanced)
     }
   }

@@ -351,6 +351,7 @@ export class BillboardSpriteSystem {
 
       instanced.count = placed
       instanced.instanceMatrix.needsUpdate = true
+      instanced.frustumCulled = false // visible from aerial camera
       this._meshes.push(instanced)
     }
   }
