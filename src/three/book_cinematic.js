@@ -117,10 +117,10 @@ export class BookCinematic {
     grad.addColorStop(0, '#e0d4b4'); grad.addColorStop(0.1, '#ede4d0')
     grad.addColorStop(0.9, '#ede4d0'); grad.addColorStop(1, '#dcd0b0')
     cx.fillStyle = grad; cx.fillRect(x, y, w, h)
-    // Age spots
-    for (let i = 0; i < 8; i++) {
-      cx.fillStyle = `rgba(170,150,110,0.05)`
-      cx.beginPath(); cx.arc(x+Math.random()*w, y+Math.random()*h, 5+Math.random()*15, 0, Math.PI*2); cx.fill()
+    // Subtle age spots (small, barely visible)
+    for (let i = 0; i < 12; i++) {
+      cx.fillStyle = `rgba(170,150,110,0.025)`
+      cx.beginPath(); cx.arc(x+Math.random()*w, y+Math.random()*h, 2+Math.random()*6, 0, Math.PI*2); cx.fill()
     }
     // Edge burn
     cx.fillStyle = 'rgba(140,120,80,0.06)'
@@ -303,21 +303,18 @@ export class BookCinematic {
       this._drawRoll(cx, scrollX, scrollTop, scrollW)
 
       const text = this._introTarget || this._fallbackIntro
-      const targetChars = Math.floor(Math.min(p.scenario, 1) * text.length)
-      if (this._charIndex < targetChars) this._charIndex = Math.min(this._charIndex + dt*45, targetChars)
+      // Write at constant speed — don't wait for LLM progress
+      // If LLM text arrives, it replaces the target and writing continues
+      const maxChars = text.length
+      this._charIndex = Math.min(this._charIndex + dt * 35, maxChars) // 35 chars/sec always
 
       const pos = this._writeText(cx, scrollX, scrollTop, scrollW, this._charIndex)
       if (this._charIndex < text.length) this._drawQuill(cx, pos.qx, pos.qy)
 
-      // Quill trembles when waiting
-      if (this._charIndex >= targetChars && p.scenario < 1) {
-        this._drawQuill(cx, pos.qx + Math.sin(this._t*15)*3, pos.qy + Math.cos(this._t*12)*2)
-      }
-
       this._drawParticles(cx)
 
-      // Show continue button ONLY when text is fully written
-      if (this._charIndex >= text.length || (p.scenario >= 1 && this._charIndex >= targetChars)) {
+      // Show continue button ONLY when ALL text is written
+      if (this._charIndex >= maxChars - 1) {
         this._continueBtn.style.display = 'block'
       }
     }
