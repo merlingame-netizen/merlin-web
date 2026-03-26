@@ -30,10 +30,32 @@ export class MenuScreen {
           ${hasSave ? '<button class="mv2-btn" id="mv2-new">Nouvelle Partie</button>' : ''}
           <button class="mv2-btn mv2-btn-merlin" id="mv2-merlin">Parler a Merlin</button>
         </div>
-        <div class="menu-v2-footer">M.E.R.L.I.N. — Le Jeu des Oghams</div>
+        <div class="menu-v2-lore" id="menu-lore"></div>
+        <div class="menu-v2-footer">M.E.R.L.I.N. — Le Jeu des Oghams &bull; v1.0</div>
       </div>
     `
     container.appendChild(this._el)
+
+    // Rotating lore quotes
+    const loreQuotes = [
+      '"Les pierres se souviennent de tout." — Merlin',
+      '"Chaque sentier mene a un choix. Chaque choix, a un destin."',
+      '"La foret parle a ceux qui savent ecouter."',
+      '"Les Oghams sont les cles du monde ancien."',
+      '"Ni la force ni la ruse ne suffisent. Seule la sagesse prevaut."',
+      '"Les korrigans rient de ceux qui se croient seuls."',
+      '"Le voile entre les mondes est plus fin qu\'un souffle."',
+    ]
+    const loreEl = this._el.querySelector('#menu-lore')
+    if (loreEl) {
+      let loreIdx = Math.floor(Math.random() * loreQuotes.length)
+      loreEl.textContent = loreQuotes[loreIdx]
+      this._loreTimer = setInterval(() => {
+        loreIdx = (loreIdx + 1) % loreQuotes.length
+        loreEl.style.opacity = '0'
+        setTimeout(() => { loreEl.textContent = loreQuotes[loreIdx]; loreEl.style.opacity = '1' }, 500)
+      }, 6000)
+    }
 
     // SFX on hover for all buttons
     this._el.querySelectorAll('.mv2-btn').forEach(btn => {
@@ -62,6 +84,7 @@ export class MenuScreen {
   }
 
   unmount() {
+    if (this._loreTimer) clearInterval(this._loreTimer)
     this._el?.remove()
     this._el = null
   }
