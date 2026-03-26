@@ -784,16 +784,8 @@ function _hideLoadingScreen() {
 async function startFirstRun() {
   SFX.confirm()
 
-  // ─── STEP 1: Fade menu to black (1.5s) ───
-  const fadeOverlay = document.createElement('div')
-  fadeOverlay.style.cssText = 'position:fixed;inset:0;z-index:200;background:#000;opacity:0;transition:opacity 1.5s ease-in;'
-  document.body.appendChild(fadeOverlay)
-  requestAnimationFrame(() => { fadeOverlay.style.opacity = '1' })
-  await new Promise(r => setTimeout(r, 1800)) // wait for fade complete
-
-  // Now safe to switch scenes — screen is black
+  // ─── STEP 1: Hide menu immediately, book handles its own fade ───
   _hide3D()
-  // Hide menu DOM overlay completely
   document.querySelectorAll('.scene-menu, .scene-menu-3d-overlay').forEach(el => el.style.display = 'none')
 
   // Skip quiz/intro — go direct to game3d with Broceliande
@@ -819,10 +811,7 @@ async function startFirstRun() {
   renderManager.setPostProcessing(false)
   renderManager.resume()
 
-  // ─── STEP 3: Fade FROM black to reveal book (2s) ───
-  fadeOverlay.style.transition = 'opacity 2s ease-out'
-  requestAnimationFrame(() => { fadeOverlay.style.opacity = '0' })
-  setTimeout(() => fadeOverlay.remove(), 2200)
+  // Book scene now active — book handles its own visual reveal
 
   // Start LLM generation in parallel
   clearScenario()
