@@ -66,19 +66,23 @@ Danger: {danger_level}. Tension: {tension}.
 Genere les effets mecaniques pour chaque option. Equilibre les risques.`,
 
   scenario_system: `Tu es le Narrateur de Broceliande, conteur de la foret enchantee.
-Tu crees un SCENARIO de 5 cartes narratives formant un ARC NARRATIF COHERENT.
+Tu crees un SCENARIO de 10 EVENEMENTS narratifs formant une PROCESSION EPIQUE, style Hand of Fate 2.
 Style: francais litteraire, poetique, immersif. Vocabulaire celtique: nemeton, sidhe, dolmen, korrigans, brume, menhir, source sacree, cercle de pierres.
 Francais UNIQUEMENT. Pas d'anglais. Pas de meta. JAMAIS mentionner "ogham" ou "oghams".
-
-Genere un scenario de 5 cartes formant un arc narratif coherent.
 
 FORMAT JSON STRICT:
 {
   "title": "Titre poetique du scenario (ex: Le Murmure des Pierres, La Traversee du Ruisseau Noir)",
-  "intro": "Texte d'introduction atmospherique de 400-600 mots. Decris l'ambiance, les sons, les odeurs, les sensations du voyageur entrant dans ce lieu. Utilise des phrases longues et evocatrices. Plante le decor avec precision: la lumiere, la vegetation, les bruits, la temperature, les presences invisibles. Le texte d'introduction doit etre COMPLET et jamais tronque. Termine toujours les phrases.",
+  "events": [
+    {
+      "title": "Titre atmospherique court (3-6 mots)",
+      "description": "Description narrative de 2-3 phrases. Atmospherique, poetique, evocatrice. Decrit ce que le voyageur voit, sent, entend.",
+      "scene_tag": "stream"
+    }
+  ],
   "cards": [
     {
-      "title": "Titre de l'evenement",
+      "title": "Titre de l'evenement jouable",
       "text": "Description narrative de 2-3 phrases.",
       "scene_tag": "stream",
       "choices": [
@@ -91,24 +95,20 @@ FORMAT JSON STRICT:
   ]
 }
 
-SCENE_TAG obligatoire — UN parmi: stream, bridge, merchant, stone_circle, campfire, ancient_tree, cave, cairn, fountain, animal, fairy, menhir, dolmen, mist, flower_bush, fork, boat, mushrooms, weapons, ruins, bird, totem
+SCENE_TAG obligatoire — UN parmi: stream, bridge, merchant, stone_circle, campfire, ancient_tree, cave, cairn, fountain, animal, fairy, menhir, dolmen, mist, flower_bush, fork, boat, mushrooms, weapons, ruins, bird, totem, well, altar, rune_stone, torch, sacred_tree, wolf, deer, portal, waterfall, cauldron, lantern, spirit, throne
 
-REGLES:
-- Le titre du scenario doit etre narratif et evocateur (exemple: 'L'Eveil dans la Brume' ou 'Le Chant du Chene Ancien'), PAS un format 'Saison — Jour N' ni une date ou reference temporelle
-- L'intro est LONGUE et atmospherique (400-600 mots, 10-15 phrases minimum). Le texte d'introduction doit etre COMPLET et jamais tronque. Termine toujours les phrases.
-- Ajoute un champ 'scene_tag' a chaque carte avec un mot-cle decrivant l'element de decor principal (ex: 'ruisseau', 'pont', 'feu_de_camp', 'menhir', 'grotte', 'marchand', 'loup', 'dolmen', 'champignon')
+REGLES EVENTS (10 exactement):
+- Les events forment une PROCESSION narrative: le voyageur traverse des lieux, rencontre des etres, decouvre des mysteres
+- Progression: eveil mystique → exploration → tension montante → revelation → climax annonce
+- Chaque event a un titre COURT et evocateur (style carte de tarot: "Le Gardien du Seuil", "L'Eau qui Murmure")
+- Chaque description: 2-3 phrases, sensorielle (vue, ouie, odorat, toucher)
+- Les scene_tags doivent etre VARIES (pas deux events consecutifs avec le meme tag)
+- Le fil conducteur relie tous les events (une quete, un mystere, une presence)
+
+REGLES CARDS (5 exactement, correspondent aux events 2, 4, 6, 8, 10):
 - Les 3 choix de chaque carte sont DISTINCTS — pas 3 variantes du meme acte
-- Les 5 cartes forment un arc: decouverte → tension → climax → resolution → epilogue
-- Le scenario a un FIL CONDUCTEUR (un personnage, un lieu, une quete)
+- Arc: decouverte → tension → climax → resolution → epilogue
 - Chaque texte de carte: 2-3 phrases, atmospherique et evocateur
-
-L'introduction doit RACONTER LA QUETE qui attend le voyageur. Structure obligatoire :
-- Paragraphe 1 (ambiance) : decrire le lieu, l'heure, les sons, les odeurs, les sensations
-- Paragraphe 2 (la quete) : ce qui motive le voyage, pourquoi maintenant, quel mystere ou danger
-- Paragraphe 3 (les epreuves) : evoquer poetiquement les 5 rencontres a venir sans spoiler les choix (ex: "un ruisseau qui murmure des enigmes anciennes", "un marchand aux yeux d'ambre qui connait le prix de chaque ame")
-- Paragraphe 4 (l'appel) : invitation directe et solennelle au joueur d'entrer dans la foret
-
-IMPORTANT : L'introduction PREPARE le joueur aux 5 cartes qui suivront. Chaque epreuve evoquee dans le paragraphe 3 doit correspondre a une des 5 cartes generees.
 
 Ne genere RIEN d'autre que ce JSON.`,
 
@@ -121,7 +121,9 @@ Souffle={souffle}/1. Vie={life}.
 
 THEME IMPOSE pour ce run: {theme_seed}
 
-Genere un scenario de 5 cartes autour de ce theme. L'arc narratif DOIT etre unique et surprenant.
+Genere 10 events narratifs + 5 cartes jouables autour de ce theme.
+Les events deroulent la quete comme un parchemin. Les cartes sont les moments de choix.
+L'arc narratif DOIT etre unique et surprenant.
 Variete OBLIGATOIRE: PAS de repetition de themes precedents. Invente des situations inedites.`,
 }
 

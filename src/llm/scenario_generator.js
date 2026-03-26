@@ -9,7 +9,7 @@ import { validateCard } from './guardrails.js'
 const API_URL = '/api/llm'
 const SCENARIO_SIZE = 5
 
-let _scenario = null    // { cards: [...], index: 0, title, intro }
+let _scenario = null    // { cards: [...], index: 0, title, events, path_events }
 let _generating = false
 let _prefetching = false
 
@@ -42,6 +42,10 @@ export function getScenarioIntro() {
   return _scenario?.intro || null
 }
 
+export function getScenarioEvents() {
+  return _scenario?.events ?? []
+}
+
 export async function generateScenario(state) {
   if (_generating) return false
   if (!state?.run) { console.warn('[Scenario] Skipping — run not initialized'); return false }
@@ -70,18 +74,28 @@ export async function generateScenario(state) {
         const title = data.parsed.title || data.parsed.scenario_title || validCards[0]?.title || 'Rencontre en Broceliande'
         const intro = data.parsed.intro || null
 
-        // Build path_events from cards' scene_tags (positioned along path)
-        const path_events = validCards.map((c, i) => ({
-          position: 0.03 + i * 0.035, // match encounter points
+        // Extract events (Hand of Fate 2 style — narrative procession)
+        const rawEvents = Array.isArray(data.parsed.events) ? data.parsed.events : []
+        const events = rawEvents.filter(e => e?.title && e?.description).map(e => ({
+          title: String(e.title).trim(),
+          description: String(e.description).trim(),
+          scene_tag: VALID_SCENE_TAGS.has(String(e.scene_tag || '').toLowerCase().trim())
+            ? String(e.scene_tag).toLowerCase().trim() : 'glow',
+        }))
+
+        // Build path_events from events (or cards as fallback)
+        const pathSource = events.length >= 5 ? events : validCards
+        const path_events = pathSource.map((c, i) => ({
+          position: 0.03 + i * 0.035,
           type: c.scene_tag || 'glow',
           tag: c.scene_tag || 'glow',
           mood: c.tags?.includes('danger') ? 'danger' : (c.tags?.includes('sacred') ? 'sacred' : 'neutral'),
           cardIndex: i,
         }))
 
-        _scenario = { cards: validCards, index: 0, title, intro, path_events }
-        console.log(`[Scenario] Generated ${validCards.length}-card arc: "${_scenario.title}"`)
-        if (intro) console.log(`[Scenario] Intro: ${intro.slice(0, 80)}...`)
+        _scenario = { cards: validCards, index: 0, title, intro, events, path_events }
+        console.log(`[Scenario] Generated ${validCards.length}-card arc + ${events.length} events: "${_scenario.title}"`)
+        if (events.length > 0) console.log(`[Scenario] Events: ${events.map(e => e.title).join(' → ')}`)
         return true
       }
       console.warn(`[Scenario] Only ${validCards.length} valid cards — insufficient`)

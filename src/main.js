@@ -9,7 +9,7 @@ import { RenderManager } from './three/render_manager.js'
 import { BookCinematic } from './three/book_cinematic.js'
 import { MenuScene3D } from './three/menu_scene_3d.js'
 import { checkLLMHealth, onStatusChange, prewarmCard, prewarmMultiple, getPrewarmedCardOrFallback, getPrewarmedCard, clearPrewarmedCard } from './llm/prewarm.js'
-import { generateScenario, getNextScenarioCard, hasCardsRemaining, cardsRemaining, prefetchNextScenario, clearScenario, getScenarioTitle, getScenarioIntro, getPathEvents } from './llm/scenario_generator.js'
+import { generateScenario, getNextScenarioCard, hasCardsRemaining, cardsRemaining, prefetchNextScenario, clearScenario, getScenarioTitle, getScenarioIntro, getScenarioEvents, getPathEvents } from './llm/scenario_generator.js'
 import { getState, dispatch } from './game/store.js'
 import { FACTIONS, FACTION_INFO } from './game/constants.js'
 import { generateCard, generateEffects } from './llm/groq_client.js'
@@ -807,33 +807,21 @@ async function startFirstRun() {
     return false
   })
 
-  // Feed LLM results progressively as they arrive
+  // Feed LLM events to double scroll cinematic
   scenarioPromise.then(success => {
-    const title = success ? (getScenarioTitle() || 'Brocéliande') : 'Brocéliande'
-    const intro = success
-      ? (getScenarioIntro() || 'Les brumes de Brocéliande se lèvent lentement, dévoilant les racines noueuses des chênes millénaires.')
-      : 'Les brumes de Brocéliande se lèvent lentement, dévoilant les racines noueuses des chênes millénaires. Le sentier s\'ouvre devant toi, étroit et sinueux. Merlin murmure dans le vent.'
-
-    // Progress: title ready
-    bookCinematic.onTitleReady(title)
-    // Progress: intro ready (simulate progressive writing)
-    bookCinematic.onIntroReady(intro)
-    // Simulate streaming: increment scenario progress over 3s
-    let streamProgress = 0
-    const streamInterval = setInterval(() => {
-      streamProgress += 0.05
-      bookCinematic.onIntroProgress(Math.min(1, streamProgress))
-      if (streamProgress >= 1) clearInterval(streamInterval)
-    }, 150)
-
-    // Progress: path events
-    if (success) bookCinematic.onPathReady(getPathEvents())
-    else bookCinematic.onPathReady([])
+    if (success) {
+      const events = getScenarioEvents()
+      if (events.length > 0) {
+        bookCinematic.onEventsReady(events)
+      } else {
+        // Fallback: build events from path_events + cards
+        bookCinematic.onEventsReady([])
+      }
+    } else {
+      bookCinematic.onEventsReady([]) // uses built-in fallback events
+    }
   }).catch(() => {
-    bookCinematic.onTitleReady('Brocéliande')
-    bookCinematic.onIntroReady('La forêt attend votre venue...')
-    bookCinematic.onIntroProgress(1)
-    bookCinematic.onPathReady([])
+    bookCinematic.onEventsReady([]) // uses built-in fallback events
   })
 
   // Prewarm cards in background

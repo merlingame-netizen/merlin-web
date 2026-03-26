@@ -248,8 +248,9 @@ export class GameScene3D {
     )
     this._renderManager.resume()
 
-    // Show intro with eyelid iris + 3D parchment card
-    this._showGameIntro(biomeKey, seasonIndex, day)
+    // No intro card — scroll cinematic handles it. Start walking directly.
+    this._started = true
+    this._pathCamera.startWalking()
 
     this.render(state)
   }
