@@ -401,15 +401,21 @@ const gameScene3D = new GameScene3D(
 
       let effects = card._effects[`effects_${optionIndex}`] ?? []
 
-      // Modulate faction shifts by last minigame score (if any)
+      // Modulate ALL numeric effects by minigame score (not just factions)
       if (_lastMinigameScore > 0) {
         const multiplier = Math.max(0.3, _lastMinigameScore / 50) // 0.3x-2.0x range
         effects = effects.map(e => {
-          if (typeof e === 'string' && e.startsWith('SHIFT_FACTION:')) {
-            const parts = e.split(':')
-            if (parts.length >= 3) {
-              const val = parseInt(parts[2])
-              if (!isNaN(val)) return `${parts[0]}:${parts[1]}:${Math.round(val * multiplier)}`
+          if (typeof e !== 'string') return e
+          const parts = e.split(':')
+          // Modulate effects with numeric last arg: SHIFT_FACTION:x:N, ADD_KARMA:N, ADD_TENSION:N, etc
+          if (parts.length >= 3 && parts[0] === 'SHIFT_FACTION') {
+            const val = parseInt(parts[2])
+            if (!isNaN(val)) return `${parts[0]}:${parts[1]}:${Math.round(val * multiplier)}`
+          } else if (parts.length >= 2) {
+            const val = parseInt(parts[parts.length - 1])
+            if (!isNaN(val) && ['ADD_KARMA', 'ADD_TENSION', 'ADD_ESSENCES', 'MODIFY_BOND'].includes(parts[0])) {
+              parts[parts.length - 1] = String(Math.round(val * multiplier))
+              return parts.join(':')
             }
           }
           return e
