@@ -208,6 +208,33 @@ export const FALLBACK_POOLS = {
       [['Les six Factions', 'Sagesse'], ['Je ne sais pas encore', 'Humilite'], ['Toi, Merlin', 'Audace']], ['merlin']),
   ],
 
+  // Phase 2: Additional variety cards
+  variety: [
+    card('v01', 'Le Cerf Blanc',
+      'Un cerf blanc surgit du brouillard. Sa ramure porte des runes lumineuses. Il te fixe un instant, puis s\'enfonce dans la foret. Tu sens un appel.',
+      [['Suivre le cerf', 'Quete'], ['L\'observer partir', 'Sagesse'], ['Appeler les druides', 'Aide']], ['creature', 'sacred']),
+
+    card('v02', 'La Cascade Cachee',
+      'Derriere un rideau de lierre, une cascade murmure. L\'eau tombe dans un bassin d\'obsidienne. Des reflets d\'etoiles dansent a la surface malgre le jour.',
+      [['Se baigner', 'Soin'], ['Boire l\'eau etoilee', 'Magie'], ['Contourner la cascade', 'Prudent']], ['nature', 'healing']),
+
+    card('v03', 'Le Forgeron des Ombres',
+      'Un marteau frappe une enclume invisible. Le forgeron travaille dans l\'ombre d\'un dolmen. Ses yeux brillent comme des braises. "J\'ai quelque chose pour toi."',
+      [['Acheter une arme', 'Commerce'], ['Demander un conseil', 'Sagesse'], ['Refuser et partir', 'Mefiance']], ['stranger', 'merchant']),
+
+    card('v04', 'La Danse des Fees',
+      'Un cercle de champignons lumineux pulse au rythme d\'une musique invisible. Des fees minuscules dansent en spirale. Entrer dans le cercle pourrait tout changer.',
+      [['Danser avec elles', 'Feerie'], ['Observer depuis l\'exterieur', 'Prudent'], ['Briser le cercle', 'Risque']], ['creature', 'magic']),
+
+    card('v05', 'Le Gardien de Pierre',
+      'Une statue de guerrier celte s\'anime lentement. La mousse tombe de ses epaules. "Qui ose fouler ce sol sacre?" Sa voix gronde comme le tonnerre.',
+      [['Je suis un voyageur', 'Diplomatie'], ['Je cherche la verite', 'Quete'], ['Je ne recule pas', 'Courage']], ['sacred', 'danger']),
+
+    card('v06', 'La Nuit des Lucioles',
+      'Des milliers de lucioles emerges des sous-bois. Elles forment des constellations vivantes qui se reconfigurent sans cesse. L\'une d\'elles se pose sur ta main.',
+      [['Suivre les lucioles', 'Exploration'], ['Capturer leur lumiere', 'Magie'], ['Rester immobile et observer', 'Paix']], ['nature', 'mystic']),
+  ],
+
   npc_encounter: [
     card('npc01', 'Le Druide Ancien',
       'Un vieux druide emerge de la brume. "Les esprits m\'ont parle de toi. Ils disent que tu portes un fardeau qui n\'est pas le tien." Il te tend une infusion.',
@@ -291,6 +318,7 @@ function _selectPools(ctx) {
   if (ctx.life <= 1) pools.push(...FALLBACK_POOLS.crisis)
 
   pools.push(...FALLBACK_POOLS.universal)
+  if (FALLBACK_POOLS.variety) pools.push(...FALLBACK_POOLS.variety)
 
   // Filter by conditions
   return pools.filter(c => {
