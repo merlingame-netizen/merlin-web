@@ -291,7 +291,7 @@ export class BookCinematic {
 
   // ─── Update (called every frame) ───
   update(dt) {
-    this._t += dt / 1000
+    this._t += dt // dt is already in seconds (THREE.Clock.getDelta)
     const s = this._state
 
     // BOOK_APPEAR: grow from tiny center (3s, smooth ease-out)
