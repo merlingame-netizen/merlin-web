@@ -507,7 +507,13 @@ export class GameScene3D {
         const rep = run.factions?.[f] ?? 50
         const info = FACTION_INFO[f]
         const barW = Math.max(2, rep)
-        return `<span class="g3d-faction-pip" style="color:${info.color}" title="${info.label}: ${rep}">${info.symbol}<span class="g3d-faction-bar" style="width:${barW}%;background:${info.color}"></span></span>`
+        const status = rep >= 80 ? 'allié' : rep <= 20 ? 'hostile' : ''
+        const statusBadge = status ? `<span class="g3d-faction-status" style="color:${rep >= 80 ? '#33ff66' : '#ff4444'}">${status}</span>` : ''
+        return `<span class="g3d-faction-pip" style="color:${info.color}" title="${info.label}: ${rep}">
+          <span class="g3d-faction-name">${info.symbol} ${info.label.slice(0, 6)}</span>
+          <span class="g3d-faction-bar" style="width:${barW}%;background:${info.color}"></span>
+          <span class="g3d-faction-val">${rep}</span>${statusBadge}
+        </span>`
       }).join('')
     }
 

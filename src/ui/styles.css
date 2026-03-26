@@ -535,9 +535,12 @@ html, body {
   max-width: 50%;
 }
 .g3d-faction-pip {
-  display: flex; align-items: center; gap: 4px; position: relative;
-  font-size: 12px;
+  display: flex; align-items: center; gap: 3px; position: relative;
+  font-size: 11px;
 }
+.g3d-faction-name { opacity: 0.7; white-space: nowrap; }
+.g3d-faction-val { font-size: 10px; opacity: 0.5; min-width: 16px; text-align: right; }
+.g3d-faction-status { font-size: 9px; text-transform: uppercase; font-weight: bold; }
 .g3d-faction-bar {
   display: inline-block; height: 5px; border-radius: 3px;
   min-width: 4px; max-width: 50px; transition: width 0.5s ease-out;
