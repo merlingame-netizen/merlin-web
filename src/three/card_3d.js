@@ -4,7 +4,7 @@
 
 import * as THREE from 'three'
 
-const CARD_W = 2.0, CARD_H = 2.8
+const CARD_W = 1.4, CARD_H = 2.0 // Smaller card to show more forest
 const FLIP_DUR = 0.6, FLIP_OUT_DUR = 0.4
 
 // Faction colors for card border
