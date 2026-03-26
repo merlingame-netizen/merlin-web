@@ -20,7 +20,7 @@ const bounce = t => {
 export class BookCinematic {
   constructor() {
     this._state = STATES.APPROACH
-    this._t = 0; this._onComplete = null
+    this._t = 0; this._onComplete = null; this._onDiveStart = null
     this._progress = { scenario: 0, pathEvents: 0, terrain: 0 }
     this._title = ''; this._introTarget = ''
     this._charIndex = 0; this._page2CharIndex = 0
@@ -88,6 +88,7 @@ export class BookCinematic {
   onTerrainReady() { this._progress.terrain=1.0 }
   onAssetsReady() {}
   setOnComplete(fn) { this._onComplete=fn }
+  setOnDiveStart(fn) { this._onDiveStart=fn }
 
   // ─── Book geometry (returns bounding rect) ───
   _bookRect() {
@@ -318,39 +319,70 @@ export class BookCinematic {
       this._drawMap(cx, W/2+3, b.y, b.w/2-3, b.h, this._pathPoints.length)
     }
 
-    // ═══ DIVE_ZOOM (1.5s): zoom into the map page ═══
+    // ═══ DIVE_ZOOM (2s): zoom into the map, activate 3D underneath ═══
     else if (s===STATES.DIVE_ZOOM) {
-      const t=Math.min(1,this._t/1.5), e=easeIO(t)
+      const t=Math.min(1,this._t/2), e=easeIO(t)
       const b = this._bookRect()
-      // Zoom: scale canvas around map center
-      const mapCx_x = W/2 + 3 + (b.w/2-3)/2
-      const mapCy_y = b.y + b.h/2
+
+      // Trigger 3D scene activation at start of dive
+      if (this._t < 0.05 && this._onDiveStart) { this._onDiveStart(); this._onDiveStart = null }
+
+      // Zoom canvas around the map page center
+      const mapCx_x = W/2 + 3 + (b.w/2-3)/2, mapCy_y = b.y + b.h/2
       cx.save()
-      const scale = 1 + e * 4 // 1x → 5x zoom
-      cx.translate(mapCx_x, mapCy_y)
-      cx.scale(scale, scale)
-      cx.translate(-mapCx_x, -mapCy_y)
+      const scale = 1 + e * 6 // 1x → 7x zoom
+      cx.translate(mapCx_x, mapCy_y); cx.scale(scale, scale); cx.translate(-mapCx_x, -mapCy_y)
       this._drawScene(cx, W, H)
       this._drawMap(cx, W/2+3, b.y, b.w/2-3, b.h, this._pathPoints.length)
       cx.restore()
-      // Vignette darkening edges
-      cx.fillStyle = `rgba(0,0,0,${e*0.5})`
-      cx.fillRect(0,0,W,H*0.3); cx.fillRect(0,H*0.7,W,H*0.3)
-      cx.fillRect(0,0,W*0.2,H); cx.fillRect(W*0.8,0,W*0.2,H)
+
+      // Progressive vignette
+      const v = e * 0.6
+      cx.fillStyle = `rgba(0,0,0,${v})`
+      cx.fillRect(0, 0, W, H * (0.2 + e*0.15))
+      cx.fillRect(0, H * (0.8 - e*0.15), W, H * (0.2 + e*0.15))
+      cx.fillRect(0, 0, W * (0.15 + e*0.1), H)
+      cx.fillRect(W * (0.85 - e*0.1), 0, W * (0.15 + e*0.1), H)
+
       if (t>=1) { this._state=STATES.DIVE_CROSSFADE; this._t=0 }
     }
 
-    // ═══ DIVE_CROSSFADE (2s): fade to black → game takes over ═══
+    // ═══ DIVE_CROSSFADE (2.5s): 2D canvas fades, 3D terrain visible underneath ═══
     else if (s===STATES.DIVE_CROSSFADE) {
-      const t=Math.min(1,this._t/2), e=ease(t)
-      cx.fillStyle = `rgba(0,0,0,${e})`; cx.fillRect(0,0,W,H)
-      // "Diving" text
-      if (e < 0.7) {
-        cx.globalAlpha = 1-e*1.4
-        cx.fillStyle = '#33ff66'; cx.font = `${Math.round(H*0.025)}px Georgia,serif`
-        cx.textAlign = 'center'; cx.fillText('Vous plongez dans la forêt...', W/2, H/2)
+      const t=Math.min(1,this._t/2.5), e=ease(t)
+
+      // Fade the entire wrapper overlay to reveal 3D canvas underneath
+      this._wrapper.style.opacity = String(1 - e)
+      this._wrapper.style.background = 'transparent' // let 3D show through
+
+      // During crossfade, draw fading map remnants
+      if (e < 0.5) {
+        cx.clearRect(0, 0, W, H)
+        cx.globalAlpha = 1 - e * 2
+        // Draw scattered map elements dissolving
+        const pts = this._pathPoints
+        for (const p of pts) {
+          const drift = e * 50
+          cx.fillStyle = 'rgba(50,170,85,0.3)'
+          cx.beginPath()
+          cx.arc(W/2 + (p.nx - 0.5) * W * 0.4 + (Math.random()-0.5)*drift,
+                 H/2 + (p.ny - 0.5) * H * 0.4 + (Math.random()-0.5)*drift,
+                 3 + e * 5, 0, Math.PI*2)
+          cx.fill()
+        }
+        cx.globalAlpha = 1
+      }
+
+      // "Diving into the forest" text
+      if (e > 0.3 && e < 0.8) {
+        cx.globalAlpha = Math.min(1, (e-0.3)*4) * (1 - Math.max(0, (e-0.6)*5))
+        cx.fillStyle = 'rgba(51,255,102,0.7)'
+        cx.font = `${Math.round(H*0.03)}px Georgia,serif`
+        cx.textAlign = 'center'
+        cx.fillText('Vous plongez dans la forêt...', W/2, H/2)
         cx.textAlign = 'left'; cx.globalAlpha = 1
       }
+
       if (t>=1) { this._state=STATES.DONE; this._cleanup(); this._onComplete?.() }
     }
 

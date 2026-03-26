@@ -839,14 +839,18 @@ async function startFirstRun() {
   // Prewarm cards in background
   prewarmMultiple(getState(), 2).catch(e => console.warn('[Prewarm] Init:', e?.message))
 
-  // Wait for book cinematic to complete (player clicks "Entrer" or skips)
+  // When book dive starts, activate 3D scene UNDER the 2D canvas for crossfade
+  bookCinematic.setOnDiveStart(() => {
+    console.log('[Book] Dive started — activating 3D scene underneath')
+    dispatch('SET_PHASE', { phase: 'game' })
+    router.navigate('game3d', getState())
+    renderManager.resume()
+  })
+
+  // Wait for book cinematic to fully complete
   await new Promise(resolve => {
-    bookCinematic.setOnComplete(() => {
-      renderManager.pause()
-      resolve()
-    })
-    // Safety timeout: 30s max
-    setTimeout(() => { if (!bookCinematic.isDone()) bookCinematic.skip() }, 30000)
+    bookCinematic.setOnComplete(() => resolve())
+    setTimeout(() => { if (!bookCinematic.isDone()) bookCinematic.skip() }, 45000)
   })
 
   // Wire encounter callback: PathCamera stops → draw next card
