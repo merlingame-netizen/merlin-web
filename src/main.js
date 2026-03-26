@@ -4,10 +4,12 @@
 
 import './ui/styles.css'
 import './ui/styles_scenes.css'
+import * as THREE from 'three'
 import { RenderManager } from './three/render_manager.js'
+import { BookCinematic } from './three/book_cinematic.js'
 import { MenuScene3D } from './three/menu_scene_3d.js'
 import { checkLLMHealth, onStatusChange, prewarmCard, prewarmMultiple, getPrewarmedCardOrFallback, getPrewarmedCard, clearPrewarmedCard } from './llm/prewarm.js'
-import { generateScenario, getNextScenarioCard, hasCardsRemaining, cardsRemaining, prefetchNextScenario, clearScenario } from './llm/scenario_generator.js'
+import { generateScenario, getNextScenarioCard, hasCardsRemaining, cardsRemaining, prefetchNextScenario, clearScenario, getScenarioTitle, getScenarioIntro, getPathEvents } from './llm/scenario_generator.js'
 import { getState, dispatch } from './game/store.js'
 import { FACTIONS, FACTION_INFO } from './game/constants.js'
 import { generateCard, generateEffects } from './llm/groq_client.js'
@@ -792,24 +794,53 @@ async function startFirstRun() {
   _difficulty = createDifficultyState()
   _syncRegistries()
 
-  // Show loading screen while LLM prepares cards
-  _showLoadingScreen()
+  // ─── BOOK CINEMATIC ─── (replaces old loading screen)
+  // Create a dedicated scene + camera for the book
+  const bookScene = new THREE.Scene()
+  bookScene.background = new THREE.Color(0x0a0a08)
+  const bookCam = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 20)
+  bookCam.position.set(0, 2, 1.5)
+  bookCam.lookAt(0, 0, 0)
 
-  // Pre-generate scenario + 2 cards while cinematic plays
+  const bookCinematic = new BookCinematic(bookScene, bookCam, renderManager.getRenderer())
+
+  // Activate book scene in renderer
+  renderManager.setActiveScene(bookScene, bookCam, (dt) => bookCinematic.update(dt))
+  renderManager.setPostProcessing(false)
+  renderManager.resume()
+
+  // Start LLM generation in parallel
   clearScenario()
-  const llmReady = (async () => {
-    await generateScenario(getState()).catch(e => console.warn('[Scenario] Init:', e?.message))
-    await prewarmMultiple(getState(), 2).catch(e => console.warn('[Prewarm] Init:', e?.message))
-  })()
+  const scenarioPromise = generateScenario(getState()).catch(e => {
+    console.warn('[Scenario] Init:', e?.message)
+    return false
+  })
 
-  // Wait for BOTH: LLM ready AND cinematic minimum (10s animation)
-  const cinematicMinimum = new Promise(r => setTimeout(r, 10500)) // Full 5-phase animation
-  const llmTimeout = new Promise(r => setTimeout(r, 15000)) // Safety cap
-  await Promise.all([
-    cinematicMinimum, // Always wait for animation to complete
-    Promise.race([llmReady, llmTimeout]), // LLM or timeout
-  ])
-  _hideLoadingScreen()
+  // Feed LLM results to book cinematic as they arrive
+  scenarioPromise.then(success => {
+    if (success) {
+      bookCinematic.onTitleReady(getScenarioTitle() || 'Brocéliande')
+      bookCinematic.onIntroReady(getScenarioIntro() || 'La forêt attend votre venue...')
+      bookCinematic.onPathReady(getPathEvents())
+    } else {
+      bookCinematic.onTitleReady('Brocéliande')
+      bookCinematic.onIntroReady('Les brumes de Brocéliande se lèvent, dévoilant les racines noueuses des chênes millénaires. Le sentier s\'ouvre devant toi.')
+      bookCinematic.onPathReady([])
+    }
+  })
+
+  // Prewarm cards in background
+  prewarmMultiple(getState(), 2).catch(e => console.warn('[Prewarm] Init:', e?.message))
+
+  // Wait for book cinematic to complete (player clicks "Entrer" or skips)
+  await new Promise(resolve => {
+    bookCinematic.setOnComplete(() => {
+      renderManager.pause()
+      resolve()
+    })
+    // Safety timeout: 30s max
+    setTimeout(() => { if (!bookCinematic.isDone()) bookCinematic.skip() }, 30000)
+  })
 
   // Wire encounter callback: PathCamera stops → draw next card
   gameScene3D.setOnEncounterReached((_encounterIdx) => {
