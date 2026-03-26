@@ -610,12 +610,12 @@ export class GameScene3D {
     // const evType = getEventType(card)
     // if (this._spawner && (evType === 'creature' || evType === 'glow')) { ... }
 
-    // 3. Spawn encounter card in 3D — opposite side of asset
+    // 3. Spawn encounter card in 3D — slightly off-center (not too far)
     let cardLateral
     switch (placement) {
-      case 'left': cardLateral = 1.3; break    // asset left → card right
-      case 'right': cardLateral = -1.3; break  // asset right → card left
-      default: cardLateral = (Math.random() > 0.5 ? -1.5 : 1.5); break // center → random side, wider
+      case 'left': cardLateral = 0.6; break     // card slightly right of center
+      case 'right': cardLateral = -0.6; break   // card slightly left of center
+      default: cardLateral = 0; break            // card centered
     }
     const cardPos = camRef.clone()
       .add(fwd.clone().multiplyScalar(2.5))
