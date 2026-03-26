@@ -115,8 +115,14 @@ Ne genere RIEN d'autre que ce JSON.`,
   scenario_user: `Biome: {biome}. Jour {day}, Saison {season}.
 Reputation factions: {faction_states}.
 Souffle={souffle}/1. Vie={life}.
-{narrative_phase}{danger_context}{biome_context}
-Genere un scenario de 5 cartes formant une histoire coherente dans ce biome.`,
+{narrative_phase}
+{danger_context}
+{biome_context}
+
+THEME IMPOSE pour ce run: {theme_seed}
+
+Genere un scenario de 5 cartes autour de ce theme. L'arc narratif DOIT etre unique et surprenant.
+Variete OBLIGATOIRE: PAS de repetition de themes precedents. Invente des situations inedites.`,
 }
 
 export function interpolate(template, vars) {

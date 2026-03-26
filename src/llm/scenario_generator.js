@@ -156,8 +156,27 @@ function _validateAndNormalize(cards) {
   return valid
 }
 
+const THEME_SEEDS = [
+  'La quête du gui sacré — un druide mourant a besoin du gui d\'un chêne millénaire',
+  'La trahison des korrigans — les petits peuples complotent dans l\'ombre des dolmens',
+  'Le réveil des anciens — les menhirs vibrent et les esprits s\'éveillent',
+  'La chasse au cerf blanc — une créature mythique guide vers un secret',
+  'L\'épreuve de Samhain — le voile entre les mondes s\'amincit, les morts parlent',
+  'Le pacte des six factions — une alliance fragile menace de se briser',
+  'La prophétie oubliée — un parchemin ancien annonce un événement imminent',
+  'Le marchand des âmes — un voyageur propose des échanges dangereux',
+  'La source empoisonnée — l\'eau sacrée est corrompue, la forêt souffre',
+  'Le chant du druide perdu — une mélodie hante la forêt depuis des siècles',
+  'La forge des Oghams — un forgeron mystérieux grave des runes de pouvoir',
+  'Le tribunal des arbres — les chênes anciens jugent les voyageurs',
+  'La danse des feux follets — des lumières trompeuses égarent les imprudents',
+  'Le gardien du pont — un esprit bloque le passage et pose des énigmes',
+  'La nuit des pierres levées — les menhirs se déplacent sous la lune',
+]
+
 function _buildScenarioPrompt(ctx) {
   const system = TEMPLATES.scenario_system
+  const theme = THEME_SEEDS[Math.floor(Math.random() * THEME_SEEDS.length)]
   const user = interpolate(TEMPLATES.scenario_user, {
     biome: ctx.biome ?? 'Broceliande',
     day: ctx.day ?? 1,
@@ -168,6 +187,8 @@ function _buildScenarioPrompt(ctx) {
     narrative_phase: ctx.narrative_phase ?? '',
     danger_context: ctx.danger_context ?? '',
     biome_context: ctx.biome_context ?? '',
+    theme_seed: theme,
   })
+  console.log(`[Scenario] Theme seed: "${theme}"`)
   return { system, user }
 }
