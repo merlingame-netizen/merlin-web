@@ -349,6 +349,7 @@ export class GameScene3D {
       monts: ['cairn', 'cave', 'rune_stone', 'altar', 'menhir', 'torch', 'wolf', 'spirit', 'campfire', 'dolmen'],
       ile_sein: ['menhir', 'altar', 'rune_stone', 'flower_bush', 'fountain', 'spirit', 'lantern', 'cairn', 'totem', 'bird'],
       huelgoat: ['ancient_tree', 'mushrooms', 'cairn', 'stream', 'sacred_tree', 'campfire', 'fairy', 'deer', 'flower_bush', 'cave'],
+      ecosse: ['cairn', 'menhir', 'stone_circle', 'rune_stone', 'campfire', 'wolf', 'deer', 'torch', 'spirit', 'cave'],
       iles_mystiques: ['portal', 'cauldron', 'fairy', 'spirit', 'throne', 'rune_stone', 'altar', 'lantern', 'waterfall', 'flower_bush'],
     }
     const fallbackPool = BIOME_ASSETS[biomeKey] || BIOME_ASSETS.broceliande
