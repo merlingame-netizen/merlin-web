@@ -807,21 +807,25 @@ async function startFirstRun() {
     return false
   })
 
-  // Feed LLM events to double scroll cinematic
+  // Feed LLM results to double scroll cinematic
+  // LEFT scroll = intro text, RIGHT scroll = map dots from events
   scenarioPromise.then(success => {
     if (success) {
+      // Intro text for left scroll
+      const title = getScenarioTitle() || 'Broceliande'
+      const intro = getScenarioIntro() || ''
+      bookCinematic.onIntroReady(title, intro)
+
+      // Events build the map dots on right scroll
       const events = getScenarioEvents()
-      if (events.length > 0) {
-        bookCinematic.onEventsReady(events)
-      } else {
-        // Fallback: build events from path_events + cards
-        bookCinematic.onEventsReady([])
-      }
+      bookCinematic.onEventsReady(events.length > 0 ? events : [])
     } else {
-      bookCinematic.onEventsReady([]) // uses built-in fallback events
+      bookCinematic.onIntroReady('Broceliande', '')
+      bookCinematic.onEventsReady([])
     }
   }).catch(() => {
-    bookCinematic.onEventsReady([]) // uses built-in fallback events
+    bookCinematic.onIntroReady('Broceliande', '')
+    bookCinematic.onEventsReady([])
   })
 
   // Prewarm cards in background
