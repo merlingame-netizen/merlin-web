@@ -48,9 +48,11 @@ export function validateCard(card) {
     errors.push('Too similar to recent card')
   }
 
-  // Choice labels check
-  for (let i = 0; i < 3; i++) {
-    const ch = card.choices[i]
+  // Choice labels check (guard against null/undefined choices)
+  const choices = card.choices ?? []
+  if (choices.length < 3) errors.push('Fewer than 3 choices')
+  for (let i = 0; i < Math.min(3, choices.length); i++) {
+    const ch = choices[i]
     if (!ch || typeof ch.label !== 'string' || ch.label.length < 2) {
       errors.push(`Choice ${i} invalid`)
     }
