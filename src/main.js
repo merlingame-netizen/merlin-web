@@ -491,6 +491,9 @@ const gameScene3D = new GameScene3D(
 
       const newState = getState()
       if (newState.phase === 'ending') {
+        // Dramatic death/victory transition
+        const isDefeat = newState.run.ending?.type === 'defeat'
+        await _playEndingTransition(isDefeat)
         router.navigate('ending', newState)
       } else if (newState.phase === 'game') {
         // 3D mode: walk resumes, PathCamera encounter callback triggers next card
@@ -908,6 +911,43 @@ function showSaveLoadScreen() {
     router.navigate(s.phase === 'game' ? 'game' : 'hub', s)
     if (s.phase === 'game') _drawNextCard()
   }
+}
+
+function _playEndingTransition(isDefeat) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div')
+    overlay.style.cssText = `
+      position:fixed;inset:0;z-index:150;pointer-events:none;
+      background:${isDefeat ? 'radial-gradient(ellipse at center, rgba(80,0,0,0) 0%, rgba(60,0,0,0.8) 100%)' : 'radial-gradient(ellipse at center, rgba(255,220,100,0) 0%, rgba(255,200,50,0.4) 100%)'};
+      opacity:0;transition:opacity 1.5s ease-in;
+    `
+    document.body.appendChild(overlay)
+
+    // Text announcement
+    const text = document.createElement('div')
+    text.textContent = isDefeat ? 'Ton essence s\'éteint...' : 'La lumière t\'enveloppe...'
+    text.style.cssText = `
+      position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:151;
+      color:${isDefeat ? '#ff4444' : '#ffcc44'};font:bold 28px Georgia,serif;
+      text-shadow:0 0 20px ${isDefeat ? 'rgba(255,0,0,0.5)' : 'rgba(255,200,50,0.5)'};
+      opacity:0;transition:opacity 1s 0.5s;pointer-events:none;
+    `
+    document.body.appendChild(text)
+
+    requestAnimationFrame(() => {
+      overlay.style.opacity = '1'
+      text.style.opacity = '1'
+    })
+
+    if (isDefeat) try { SFX.damage?.() } catch {}
+    else try { SFX.confirm?.() } catch {}
+
+    setTimeout(() => {
+      overlay.remove()
+      text.remove()
+      resolve()
+    }, 2500)
+  })
 }
 
 function _showEffectToasts(effects) {
