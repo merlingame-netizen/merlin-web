@@ -55,6 +55,40 @@ function createOverlay() {
 
 function bg(cx) { cx.fillStyle = PALETTE.bg; cx.fillRect(0, 0, 400, 400) }
 
+// ── Juice helpers — particles, shake, score popup ──
+const _particles = []
+function spawnParticles(x, y, color, count = 8) {
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5
+    _particles.push({
+      x, y, vx: Math.cos(angle) * (2 + Math.random() * 3),
+      vy: Math.sin(angle) * (2 + Math.random() * 3) - 1,
+      life: 1, color, size: 2 + Math.random() * 3,
+    })
+  }
+}
+function drawParticles(cx) {
+  for (let i = _particles.length - 1; i >= 0; i--) {
+    const p = _particles[i]
+    p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.life -= 0.03
+    if (p.life <= 0) { _particles.splice(i, 1); continue }
+    cx.globalAlpha = p.life
+    cx.fillStyle = p.color
+    cx.beginPath(); cx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2); cx.fill()
+  }
+  cx.globalAlpha = 1
+}
+function drawScorePopup(cx, text, x, y, alpha) {
+  if (alpha <= 0) return
+  cx.globalAlpha = alpha
+  cx.fillStyle = '#FFBF33'
+  cx.font = 'bold 24px VT323, monospace'
+  cx.textAlign = 'center'
+  cx.fillText(text, x, y)
+  cx.textAlign = 'left'
+  cx.globalAlpha = 1
+}
+
 // ══════════════════════════════════════════════════════════════
 // TRACES — Follow path with finger
 // ══════════════════════════════════════════════════════════════
@@ -89,14 +123,29 @@ function playTraces() {
       cx.beginPath(); cx.moveTo(pts[0].x, pts[0].y); for (const p of pts) cx.lineTo(p.x, p.y); cx.stroke()
       cx.setLineDash([]); cx.shadowBlur = 0
       if (trail.length > 1) { cx.strokeStyle = 'rgba(255,191,51,.6)'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(trail[0].x, trail[0].y); for (const p of trail) cx.lineTo(p.x, p.y); cx.stroke() }
+      drawParticles(cx)
       cx.fillStyle = PALETTE.white; cx.font = '13px Inter,sans-serif'; cx.fillText('Glissez le long du sentier', 115, 14)
       if (timer >= dur) { finish() } else requestAnimationFrame(loop)
     }
     const finish = () => {
       done = true
       const score = total > 0 ? Math.round(onPath / total * 100) : 50
-      result.textContent = 'Score: ' + score; result.style.opacity = '1'
-      setTimeout(() => { wrap.remove(); resolve({ score, success: score >= 50 }) }, 900)
+      const success = score >= 50
+      // Juice: particles + score popup
+      spawnParticles(200, 200, success ? PALETTE.green : PALETTE.red, success ? 15 : 5)
+      result.textContent = (success ? '✓ ' : '✗ ') + score + '%'
+      result.style.opacity = '1'
+      result.style.color = success ? PALETTE.green : PALETTE.red
+      // Final draw with particles
+      let popupAlpha = 1
+      const endAnim = () => {
+        bg(cx); drawParticles(cx)
+        drawScorePopup(cx, success ? 'Réussi!' : 'Raté...', 200, 180, popupAlpha)
+        popupAlpha -= 0.02
+        if (popupAlpha > 0) requestAnimationFrame(endAnim)
+      }
+      endAnim()
+      setTimeout(() => { wrap.remove(); resolve({ score, success }) }, 1200)
     }
     requestAnimationFrame(loop)
   })
