@@ -31,7 +31,7 @@ export class MenuScreen {
           <button class="mv2-btn mv2-btn-merlin" id="mv2-merlin">Parler a Merlin</button>
         </div>
         <div class="menu-v2-lore" id="menu-lore"></div>
-        <div class="menu-v2-footer">M.E.R.L.I.N. — Le Jeu des Oghams &bull; v1.0</div>
+        <div class="menu-v2-footer">M.E.R.L.I.N. — Forêt de Brocéliande &bull; v1.0</div>
       </div>
     `
     container.appendChild(this._el)
@@ -41,7 +41,7 @@ export class MenuScreen {
       '"Les pierres se souviennent de tout." — Merlin',
       '"Chaque sentier mene a un choix. Chaque choix, a un destin."',
       '"La foret parle a ceux qui savent ecouter."',
-      '"Les Oghams sont les cles du monde ancien."',
+      '"Chaque sentier mene a un choix. Chaque choix, a un destin."',
       '"Ni la force ni la ruse ne suffisent. Seule la sagesse prevaut."',
       '"Les korrigans rient de ceux qui se croient seuls."',
       '"Le voile entre les mondes est plus fin qu\'un souffle."',

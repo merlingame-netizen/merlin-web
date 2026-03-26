@@ -782,8 +782,17 @@ function _hideLoadingScreen() {
 }
 
 async function startFirstRun() {
-  _hide3D()
   SFX.confirm()
+
+  // ─── STEP 1: Fade menu to black (1.5s) ───
+  const fadeOverlay = document.createElement('div')
+  fadeOverlay.style.cssText = 'position:fixed;inset:0;z-index:200;background:#000;opacity:0;transition:opacity 1.5s ease-in;'
+  document.body.appendChild(fadeOverlay)
+  requestAnimationFrame(() => { fadeOverlay.style.opacity = '1' })
+  await new Promise(r => setTimeout(r, 1800)) // wait for fade complete
+
+  // Now safe to switch scenes — screen is black
+  _hide3D()
 
   // Skip quiz/intro — go direct to game3d with Broceliande
   dispatch('NEW_RUN', { biome_key: 'broceliande', phase: 'game', profile: 'equilibre' })
@@ -794,10 +803,9 @@ async function startFirstRun() {
   _difficulty = createDifficultyState()
   _syncRegistries()
 
-  // ─── BOOK CINEMATIC ─── (replaces old loading screen)
-  // Create a dedicated scene + camera for the book
+  // ─── STEP 2: Create book scene (while screen is black) ───
   const bookScene = new THREE.Scene()
-  bookScene.background = new THREE.Color(0x0a0a08)
+  bookScene.background = new THREE.Color(0x080808)
   const bookCam = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 20)
   bookCam.position.set(0, 2, 1.5)
   bookCam.lookAt(0, 0, 0)
@@ -808,6 +816,11 @@ async function startFirstRun() {
   renderManager.setActiveScene(bookScene, bookCam, (dt) => bookCinematic.update(dt))
   renderManager.setPostProcessing(false)
   renderManager.resume()
+
+  // ─── STEP 3: Fade FROM black to reveal book (2s) ───
+  fadeOverlay.style.transition = 'opacity 2s ease-out'
+  requestAnimationFrame(() => { fadeOverlay.style.opacity = '0' })
+  setTimeout(() => fadeOverlay.remove(), 2200)
 
   // Start LLM generation in parallel
   clearScenario()

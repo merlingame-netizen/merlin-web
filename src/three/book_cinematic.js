@@ -292,21 +292,27 @@ export class BookCinematic {
     this._t += dt / 1000
     const s = this._state
 
-    // BOOK_APPEAR: fade in + float up
+    // BOOK_APPEAR: fade in + float up (2.5s, smooth ease-out)
     if (s === STATES.BOOK_APPEAR) {
-      const t = Math.min(1, this._t / 1.0)
-      this._group.position.y = -0.5 + t * 0.3
-      this._group.scale.setScalar(0.5 + t * 0.5)
+      const t = Math.min(1, this._t / 2.5)
+      const ease = 1 - Math.pow(1 - t, 3) // cubic ease-out
+      this._group.position.y = -1.0 + ease * 0.8
+      this._group.scale.setScalar(0.1 + ease * 0.9)
+      // Gentle rotation settling
+      this._group.rotation.y = (1 - ease) * 0.3
       if (t >= 1) { this._state = STATES.BOOK_OPEN; this._t = 0 }
     }
 
-    // BOOK_OPEN: cover flips open
+    // BOOK_OPEN: cover flips open (3s, smooth ease-in-out)
     else if (s === STATES.BOOK_OPEN) {
-      const t = Math.min(1, this._t / 1.5)
-      const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
-      this._coverPivot.rotation.z = -Math.PI * ease // flip 180°
+      const t = Math.min(1, this._t / 3.0)
+      // Smooth ease-in-out (cubic)
+      const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+      this._coverPivot.rotation.z = -Math.PI * ease
+      // Subtle camera drift during open
+      this._camera.position.y = 2 - ease * 0.3
       if (t >= 1) {
-        this._cover.visible = false // hide cover after fully open
+        this._cover.visible = false
         this._quill.visible = true
         this._state = STATES.WRITE_TITLE; this._t = 0; this._charIndex = 0
       }
