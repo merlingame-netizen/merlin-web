@@ -865,7 +865,7 @@ export class GameScene3D {
         position:absolute;pointer-events:auto;cursor:pointer;
         padding:10px 16px;border-radius:8px;
         background:${colors[i]};border:1px solid ${borderColors[i]};
-        color:#3a2810;font:13px/1.2 Georgia,'Times New Roman',serif;
+        color:#3a2810;font:13px/1.2 'VT323',monospace;
         backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
         transition:background 0.15s,transform 0.15s;
         max-width:220px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
@@ -915,13 +915,16 @@ export class GameScene3D {
       const screenX = (projected.x * hw) + hw
       const screenY = -(projected.y * hh) + hh
 
-      // Position buttons relative to card screen position
+      // Position buttons relative to card — clamped to viewport
       const btns = container.querySelectorAll('.g3d-proj-btn')
-      const btnH = 40
-      const startY = screenY + 20 // below card center
+      const btnH = 40, btnW = 220
+      const startY = screenY + 20
+      const vw = window.innerWidth, vh = window.innerHeight
       btns.forEach((btn, i) => {
-        btn.style.left = `${screenX - 110}px`
-        btn.style.top = `${startY + i * (btnH + 8)}px`
+        const rawX = screenX - btnW / 2
+        const rawY = startY + i * (btnH + 8)
+        btn.style.left = `${Math.max(8, Math.min(vw - btnW - 8, rawX))}px`
+        btn.style.top = `${Math.max(8, Math.min(vh - btnH - 8, rawY))}px`
       })
       this._projRAF = requestAnimationFrame(updatePositions)
     }
