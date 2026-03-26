@@ -88,9 +88,13 @@ export class PathCamera {
   }
 
   /** Get the spline path for terrain/props to reference */
-  getPath() {
-    return this._path
-  }
+  getPath() { return this._path }
+
+  /** Get path start position (for aerial descent landing target) */
+  getStartPosition() { return this._path?.getPointAt(0) ?? new THREE.Vector3(0, EYE_HEIGHT, 0) }
+
+  /** Get path start look-at target */
+  getStartLookAt() { return this._path?.getPointAt(0.01) ?? new THREE.Vector3(0, EYE_HEIGHT, -1) }
 
   /** Get current world position on path */
   getPosition() {

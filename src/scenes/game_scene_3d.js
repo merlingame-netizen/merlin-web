@@ -11,7 +11,7 @@ import { Card3D } from '../three/card_3d.js'
 // eyelid_effect import removed — intro handled by book_cinematic
 import { spawnEventAsset, dismissEventAsset, matchAsset } from '../three/event_assets.js'
 import { spawnEventProps, dismissEventProps, getEventType } from '../three/event_props.js'
-import { updateTweens } from '../three/tween_engine.js'
+import { updateTweens, tweenVec3, tween } from '../three/tween_engine.js'
 import { startBiomeDrone, stopBiomeDrone, playEncounterSpawn, playEncounterDismiss } from '../audio/spatial_audio.js'
 import { SFX } from '../audio/sfx_manager.js'
 // intro_texts import removed — intro handled by book_cinematic
@@ -248,11 +248,109 @@ export class GameScene3D {
     )
     this._renderManager.resume()
 
-    // No intro card — scroll cinematic handles it. Start walking directly.
-    this._started = true
-    this._pathCamera.startWalking()
+    // Aerial descent: camera starts high, descends to path start, then walks
+    this._aerialDescent(biomeKey)
 
     this.render(state)
+  }
+
+  /** Aerial descent: camera starts high above terrain, descends to path start */
+  async _aerialDescent(biomeKey) {
+    const cam = this._world.getCamera()
+    const startPos = this._pathCamera.getStartPosition()
+    const lookTarget = this._pathCamera.getStartLookAt()
+
+    // Biome-specific aerial heights (inspired by DioramaCamera profiles)
+    const AERIAL_HEIGHTS = {
+      broceliande: 35, landes: 28, cotes: 40, monts: 50,
+      ile_sein: 25, huelgoat: 30, ecosse: 35, iles_mystiques: 25,
+    }
+    const aerialH = AERIAL_HEIGHTS[biomeKey] || 35
+    const groundY = startPos.y
+
+    // Phase A (2s): Aerial hover — camera high above, looking down at terrain center
+    const aerialPos = new THREE.Vector3(
+      startPos.x + 8,  // offset for angle
+      groundY + aerialH,
+      startPos.z + 12
+    )
+    cam.position.copy(aerialPos)
+    cam.fov = 80 // wide angle for aerial
+    cam.updateProjectionMatrix()
+
+    // Look at path midpoint from above
+    const pathMid = this._pathCamera.getPath()?.getPointAt(0.15) ?? startPos
+    cam.lookAt(pathMid.x, groundY, pathMid.z)
+
+    // Slow orbit during hover (2s)
+    const hoverStart = performance.now()
+    const hoverDuration = 2000
+    await new Promise(resolve => {
+      const hoverLoop = () => {
+        const elapsed = performance.now() - hoverStart
+        const t = Math.min(1, elapsed / hoverDuration)
+        // Gentle orbit
+        const angle = t * 0.3
+        cam.position.x = aerialPos.x + Math.sin(angle) * 3
+        cam.position.z = aerialPos.z + Math.cos(angle) * 3
+        cam.lookAt(pathMid.x, groundY, pathMid.z)
+        if (t < 1) requestAnimationFrame(hoverLoop)
+        else resolve()
+      }
+      hoverLoop()
+    })
+
+    // Phase B (3s): Descent — spiral down from aerial to path start
+    const descentStart = performance.now()
+    const descentDuration = 3000
+    const descentFrom = cam.position.clone()
+    const descentTarget = new THREE.Vector3(startPos.x, groundY + 1.7, startPos.z)
+
+    await new Promise(resolve => {
+      const descentLoop = () => {
+        const elapsed = performance.now() - descentStart
+        const t = Math.min(1, elapsed / descentDuration)
+        // Smooth ease-out
+        const e = 1 - Math.pow(1 - t, 3)
+
+        // Spiral descent path
+        const spiralAngle = e * Math.PI * 0.6
+        const spiralRadius = (1 - e) * 6
+        const posX = descentFrom.x + (descentTarget.x - descentFrom.x) * e + Math.sin(spiralAngle) * spiralRadius
+        const posY = descentFrom.y + (descentTarget.y - descentFrom.y) * e
+        const posZ = descentFrom.z + (descentTarget.z - descentFrom.z) * e + Math.cos(spiralAngle) * spiralRadius
+
+        cam.position.set(posX, posY, posZ)
+
+        // FOV narrows as we descend: 80 → 65
+        cam.fov = 80 - 15 * e
+        cam.updateProjectionMatrix()
+
+        // Look target transitions from midpoint to path ahead
+        const lookX = pathMid.x + (lookTarget.x - pathMid.x) * e
+        const lookY = groundY + (lookTarget.y - groundY) * e
+        const lookZ = pathMid.z + (lookTarget.z - pathMid.z) * e
+        cam.lookAt(lookX, lookY, lookZ)
+
+        if (t < 1) requestAnimationFrame(descentLoop)
+        else resolve()
+      }
+      descentLoop()
+    })
+
+    // Phase C (0.5s): Stabilize at eye level, snap to path start
+    cam.position.copy(descentTarget)
+    cam.fov = 65
+    cam.updateProjectionMatrix()
+    cam.lookAt(lookTarget)
+
+    // Brief pause then hand off to PathCamera
+    await new Promise(r => setTimeout(r, 500))
+
+    // Start walking
+    this._started = true
+    this._pathCamera.startWalking()
+    try { SFX.confirm() } catch (_) {}
   }
 
   /** Fork choice — visual path split, player picks a direction */
