@@ -268,31 +268,30 @@ export class GameScene3D {
     const aerialH = AERIAL_HEIGHTS[biomeKey] || 35
     const groundY = startPos.y
 
-    // Phase A (2s): Aerial hover — camera high above, looking down at terrain center
+    // Phase A (0.8s): Aerial hover — camera high above, slow orbit
+    // (starts during book DIVE fade — player sees ~0.4s after canvas clears)
     const aerialPos = new THREE.Vector3(
-      startPos.x + 8,  // offset for angle
+      startPos.x + 8,
       groundY + aerialH,
       startPos.z + 12
     )
     cam.position.copy(aerialPos)
-    cam.fov = 80 // wide angle for aerial
+    cam.fov = 85 // wide aerial FOV
     cam.updateProjectionMatrix()
 
-    // Look at path midpoint from above
     const pathMid = this._pathCamera.getPath()?.getPointAt(0.15) ?? startPos
     cam.lookAt(pathMid.x, groundY, pathMid.z)
 
-    // Slow orbit during hover (2s)
+    // Short hover with gentle orbit (0.8s — overlaps with dive fade)
     const hoverStart = performance.now()
-    const hoverDuration = 2000
+    const hoverDuration = 800
     await new Promise(resolve => {
       const hoverLoop = () => {
         const elapsed = performance.now() - hoverStart
         const t = Math.min(1, elapsed / hoverDuration)
-        // Gentle orbit
-        const angle = t * 0.3
-        cam.position.x = aerialPos.x + Math.sin(angle) * 3
-        cam.position.z = aerialPos.z + Math.cos(angle) * 3
+        const angle = t * 0.2
+        cam.position.x = aerialPos.x + Math.sin(angle) * 2
+        cam.position.z = aerialPos.z + Math.cos(angle) * 2
         cam.lookAt(pathMid.x, groundY, pathMid.z)
         if (t < 1) requestAnimationFrame(hoverLoop)
         else resolve()
@@ -300,9 +299,9 @@ export class GameScene3D {
       hoverLoop()
     })
 
-    // Phase B (3s): Descent — spiral down from aerial to path start
+    // Phase B (2s): Spiral descent — smoothstep easing (no "stuck in mud" stall)
     const descentStart = performance.now()
-    const descentDuration = 3000
+    const descentDuration = 2000
     const descentFrom = cam.position.clone()
     const descentTarget = new THREE.Vector3(startPos.x, groundY + 1.7, startPos.z)
 
@@ -310,10 +309,10 @@ export class GameScene3D {
       const descentLoop = () => {
         const elapsed = performance.now() - descentStart
         const t = Math.min(1, elapsed / descentDuration)
-        // Smooth ease-out
-        const e = 1 - Math.pow(1 - t, 3)
+        // Smoothstep easing (symmetric, no stall at end)
+        const e = t * t * (3 - 2 * t)
 
-        // Spiral descent path
+        // Spiral descent
         const spiralAngle = e * Math.PI * 0.6
         const spiralRadius = (1 - e) * 6
         const posX = descentFrom.x + (descentTarget.x - descentFrom.x) * e + Math.sin(spiralAngle) * spiralRadius
@@ -322,11 +321,11 @@ export class GameScene3D {
 
         cam.position.set(posX, posY, posZ)
 
-        // FOV narrows as we descend: 80 → 65
-        cam.fov = 80 - 15 * e
+        // FOV narrows: 85 → 65 during descent
+        cam.fov = 85 - 20 * e
         cam.updateProjectionMatrix()
 
-        // Look target transitions from midpoint to path ahead
+        // Look target blends from terrain overview to path ahead
         const lookX = pathMid.x + (lookTarget.x - pathMid.x) * e
         const lookY = groundY + (lookTarget.y - groundY) * e
         const lookZ = pathMid.z + (lookTarget.z - pathMid.z) * e
@@ -338,16 +337,12 @@ export class GameScene3D {
       descentLoop()
     })
 
-    // Phase C (0.5s): Stabilize at eye level, snap to path start
+    // Phase C: Snap to path start and walk immediately (no dead pause)
     cam.position.copy(descentTarget)
     cam.fov = 65
     cam.updateProjectionMatrix()
     cam.lookAt(lookTarget)
 
-    // Brief pause then hand off to PathCamera
-    await new Promise(r => setTimeout(r, 500))
-
-    // Start walking
     this._started = true
     this._pathCamera.startWalking()
     try { SFX.confirm() } catch (_) {}

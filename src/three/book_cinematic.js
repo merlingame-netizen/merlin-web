@@ -515,20 +515,20 @@ export class BookCinematic {
       }
     }
 
-    // === DIVE (3.5s) — zoom into map, golden flash, crossfade to 3D ===
+    // === DIVE (2.8s) — zoom into map, golden flash, crossfade to aerial 3D ===
     else if (s === STATES.DIVE) {
-      const t = Math.min(1, this._t / 3.5), e = easeIO(t)
+      const t = Math.min(1, this._t / 2.8), e = easeIO(t)
       if (this._t < 0.05 && this._onDiveStart) { this._onDiveStart(); this._onDiveStart = null; try { SFX.transitionWhoosh() } catch(_){} }
 
-      // Find focus point: last dot on the map (the "destination")
+      // Focus point: last dot on the map
       const dots = this._getDefaultDots()
       const focusDot = dots.length > 0 ? dots[dots.length - 1] : { x: 0.5, y: 0.3 }
       const mapMargin = rightW * 0.1
       const focusX = rightX + mapMargin + focusDot.x * (rightW - mapMargin * 2)
       const focusY = H * 0.12 + 25 + focusDot.y * (H * 0.72 - 45)
 
-      if (t < 0.5 && !isMobile) {
-        // Phase 1: Zoom into the last dot on the map (desktop only)
+      if (t < 0.45 && !isMobile) {
+        // Phase 1 (0-0.45): Zoom into map dot (desktop)
         const zoom = 1 + e * 8
         cx.save()
         cx.translate(focusX, focusY); cx.scale(zoom, zoom); cx.translate(-focusX, -focusY)
@@ -536,19 +536,20 @@ export class BookCinematic {
         this._drawParchment(cx, rightX, scrollTop, rightW, scrollH)
         this._drawAbstractMap(cx, rightX, scrollTop, rightW, scrollH, 1)
         cx.restore()
-        // Vignette closing in
         cx.fillStyle = `rgba(0,0,0,${e * 0.8})`
         cx.fillRect(0, 0, W, H * 0.2 + e * H * 0.15)
         cx.fillRect(0, H * (0.8 - e * 0.15), W, H * 0.2 + e * H * 0.15)
-      } else if ((isMobile && t < 0.4) || (!isMobile && t < 0.65)) {
-        // Phase 2: Brief golden flash (transition moment)
-        const flashT = (t - 0.5) / 0.15
+      } else if ((isMobile && t < 0.35) || (!isMobile && t < 0.6)) {
+        // Phase 2: Golden flash
+        const flashStart = isMobile ? 0 : 0.45
+        const flashEnd = isMobile ? 0.35 : 0.6
+        const flashT = (t - flashStart) / (flashEnd - flashStart)
         const flashAlpha = Math.sin(flashT * Math.PI) * 0.25
         cx.fillStyle = `rgba(255,200,80,${flashAlpha})`
         cx.fillRect(0, 0, W, H)
       } else {
-        // Phase 3: Fade to transparent (3D scene visible underneath)
-        const fadeStart = isMobile ? 0.4 : 0.65
+        // Phase 3: Fade to transparent — 3D aerial view visible underneath
+        const fadeStart = isMobile ? 0.35 : 0.6
         const fadeT = (t - fadeStart) / (1 - fadeStart)
         this._wrapper.style.opacity = String(1 - Math.max(0, fadeT))
         this._wrapper.style.background = 'transparent'
