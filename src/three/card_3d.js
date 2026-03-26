@@ -163,47 +163,17 @@ function _createFaceTexture(card, parchment, choices) {
     }
     if (bodyLine.trim()) cx.fillText(bodyLine.trim(), margin, bodyY)
 
-    // --- CHOICES — parchment style, warm tones ---
+    // Choices handled by projected DOM buttons — only draw ornamental footer
     if (choices?.length) {
-      const choiceY = texH * 0.63
-
-      // Ornamental separator
       cx.strokeStyle = '#8a7040'
       cx.lineWidth = 1
-      cx.beginPath(); cx.moveTo(margin + 20, choiceY - 8); cx.lineTo(texW - margin - 20, choiceY - 8); cx.stroke()
-
-      const dotColors = ['#2a6a2a', '#8a6a20', '#2a4a6a'] // forest green, amber, deep blue
-      const choiceH = (texH * 0.32) / 3
-
-      for (let i = 0; i < choices.length && i < 3; i++) {
-        const cy = choiceY + i * choiceH + choiceH / 2
-
-        // Subtle choice zone tint
-        cx.fillStyle = 'rgba(120, 100, 60, 0.06)'
-        cx.fillRect(margin, cy - choiceH * 0.38, texW - margin * 2, choiceH * 0.76)
-
-        // Dot (small filled circle)
-        cx.beginPath()
-        cx.arc(margin + 12, cy, 7, 0, Math.PI * 2)
-        cx.fillStyle = dotColors[i]
-        cx.fill()
-
-        // Label — dark brown serif, readable on parchment
-        cx.fillStyle = '#3a2810'
-        cx.font = `${Math.round(texH * 0.023)}px Georgia, 'Times New Roman', serif`
-        cx.textAlign = 'left'
-        cx.textBaseline = 'middle'
-        const label = (typeof choices[i] === 'string' ? choices[i] : choices[i].label || '').slice(0, 36)
-        cx.fillText(label, margin + 28, cy)
-
-        // Preview hint if available
-        const preview = choices[i]?.preview
-        if (preview) {
-          cx.fillStyle = '#7a6a50'
-          cx.font = `italic ${Math.round(texH * 0.016)}px Georgia, serif`
-          cx.fillText(preview.slice(0, 30), margin + 28, cy + texH * 0.022)
-        }
-      }
+      cx.beginPath(); cx.moveTo(margin + 20, texH * 0.85); cx.lineTo(texW - margin - 20, texH * 0.85); cx.stroke()
+      // Small "choose below" hint
+      cx.fillStyle = '#7a6a50'
+      cx.font = `italic ${Math.round(texH * 0.015)}px Georgia, serif`
+      cx.textAlign = 'center'
+      cx.fillText('— Choisissez votre voie —', texW / 2, texH * 0.88)
+      cx.textAlign = 'left'
     }
 
     // Faction tag — muted, bottom right
