@@ -92,7 +92,7 @@ export const SOUFFLE_START = 1
 // ── Life Essence ──────────────────────────────────────────────────────────────
 
 export const LIFE_ESSENCE_MAX = 5
-export const LIFE_ESSENCE_START = 3
+export const LIFE_ESSENCE_START = 4 // Was 3 — increased to reduce early death spiral
 
 // ── Card Types ────────────────────────────────────────────────────────────────
 
