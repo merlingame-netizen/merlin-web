@@ -89,6 +89,13 @@ export const SFX = {
   choiceSelect() { _tone(660, 0.06, 'square', 0.2); _tone(880, 0.06, 'square', 0.15) },
   choiceHover() { _tone(440, 0.04, 'sine', 0.1) },
 
+  // Scene-specific encounter sounds
+  encounterNature() { _sweep(300, 500, 0.3, 'sine', 0.15); _noise(0.15, 0.03) }, // gentle wind
+  encounterCreature() { _sweep(150, 80, 0.2, 'sawtooth', 0.2); _tone(120, 0.3, 'triangle', 0.15) }, // growl
+  encounterSacred() { _tone(528, 0.4, 'sine', 0.2); _tone(396, 0.4, 'sine', 0.15); _sweep(600, 900, 0.3, 'sine', 0.1) }, // chime
+  encounterDanger() { _sweep(200, 100, 0.15, 'sawtooth', 0.25); _noise(0.2, 0.08) }, // tension
+  encounterMystic() { _sweep(400, 700, 0.4, 'sine', 0.12); _sweep(500, 800, 0.4, 'sine', 0.1) }, // ethereal
+
   // Aspect shifts
   aspectUp() { _sweep(300, 600, 0.25, 'sine', 0.3) },
   aspectDown() { _sweep(600, 200, 0.25, 'sawtooth', 0.25) },

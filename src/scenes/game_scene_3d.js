@@ -711,7 +711,13 @@ export class GameScene3D {
 
     SFX.cardDraw()
     await this._encounterCard.flipIn(cam.position)
-    SFX.cardReveal()
+    // Scene-specific encounter sound based on card tags/mood
+    const tags = card.tags ?? []
+    if (tags.includes('creature') || tags.includes('animal')) SFX.encounterCreature?.()
+    else if (tags.includes('sacred') || tags.includes('magic')) SFX.encounterSacred?.()
+    else if (tags.includes('danger') || tags.includes('combat')) SFX.encounterDanger?.()
+    else if (tags.includes('mystic') || tags.includes('spirit')) SFX.encounterMystic?.()
+    else SFX.encounterNature?.() // default: nature ambiance
 
     // Scale pulse + edge glow after reveal
     await Promise.all([
