@@ -1,8 +1,10 @@
-// M.E.R.L.I.N. — Double Scroll Cinematic v9
+// M.E.R.L.I.N. — Double Scroll Cinematic v10
 // LEFT scroll = intro narrative text (quill writes the story)
 // RIGHT scroll = abstract map with glowing dots connected by organic curves (NO labels)
 // Events DRIVE the map — dots appear and glow as trail connects them
 // NO timers for content — player clicks to advance
+
+import { SFX } from '../audio/sfx_manager.js'
 
 const STATES = {
   SCROLL_APPEAR: 0,
@@ -56,6 +58,7 @@ export class BookCinematic {
     this._enterBtn.addEventListener('click', () => {
       this._enterBtn.style.display = 'none'
       this._state = STATES.DIVE; this._t = 0
+      try { SFX.confirm() } catch(_){}
     })
     this._skipBtn = this._btn('Passer \u25B6\u25B6', 'rgba(255,255,255,0.3)')
     this._skipBtn.style.cssText += ';bottom:12px;right:12px;left:auto;transform:none;font-size:11px;padding:5px 10px;display:block;'
@@ -434,7 +437,7 @@ export class BookCinematic {
       this._drawParticles(cx)
       this._spawnParticles(2, W / 2, sy, 'spark')
       cx.globalAlpha = 1
-      if (t >= 1) { this._state = STATES.SCROLL_UNROLL; this._t = 0 }
+      if (t >= 1) { this._state = STATES.SCROLL_UNROLL; this._t = 0; try { SFX.cardDraw() } catch(_){} }
     }
 
     // === SCROLL_UNROLL (3s) ===
@@ -459,6 +462,7 @@ export class BookCinematic {
       if (t >= 1) {
         this._charIndex = 0
         this._state = STATES.WRITE_STORY; this._t = 0
+        try { SFX.cardReveal() } catch(_){}
       }
     }
 
@@ -511,7 +515,7 @@ export class BookCinematic {
     // === DIVE (3.5s) — zoom into map, golden flash, crossfade to 3D ===
     else if (s === STATES.DIVE) {
       const t = Math.min(1, this._t / 3.5), e = easeIO(t)
-      if (this._t < 0.05 && this._onDiveStart) { this._onDiveStart(); this._onDiveStart = null }
+      if (this._t < 0.05 && this._onDiveStart) { this._onDiveStart(); this._onDiveStart = null; try { SFX.transitionWhoosh() } catch(_){} }
 
       // Find focus point: last dot on the map (the "destination")
       const dots = this._getDefaultDots()
