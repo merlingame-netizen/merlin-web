@@ -174,9 +174,17 @@ export class BookCinematic {
       lastX = x+margin+cx.measureText(line.trim()).width; lastY = ty
     }
 
-    // Blinking cursor
-    if (chars < text.length && Math.floor(this._t*3)%2===0) {
-      cx.fillRect(lastX+2, lastY-12, 1.5, 14)
+    // Ink trail at writing position (wet ink smear)
+    if (chars < text.length && chars > 0) {
+      // Fresh ink spot
+      cx.fillStyle = 'rgba(20,12,4,0.15)'
+      cx.beginPath(); cx.arc(lastX+1, lastY-4, 2.5, 0, Math.PI*2); cx.fill()
+      // Ink trail (fading behind the quill)
+      cx.fillStyle = 'rgba(20,12,4,0.06)'
+      cx.beginPath(); cx.arc(lastX-8, lastY-4, 2, 0, Math.PI*2); cx.fill()
+      cx.beginPath(); cx.arc(lastX-16, lastY-3, 1.5, 0, Math.PI*2); cx.fill()
+      // Blinking cursor
+      if (Math.floor(this._t*3)%2===0) cx.fillRect(lastX+2, lastY-12, 1.5, 14)
     }
 
     return { qx: lastX+8, qy: lastY-4, textBottom: ty+20 }
