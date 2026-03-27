@@ -35,6 +35,7 @@ export class BookCinematic {
     this._mapDots = [] // [{x, y, glowing}] — normalized 0-1 coordinates
     this._trailProgress = 0 // 0-1, how much of the trail is drawn
     this._dotCount = 0 // how many events/dots
+    this._branches = [] // fork branches off main path
 
     // Particles
     this._particles = []
@@ -105,25 +106,36 @@ export class BookCinematic {
   setOnComplete(fn) { this._onComplete = fn }
   setOnDiveStart(fn) { this._onDiveStart = fn }
 
-  // Build an organic, non-straight path of dots (like a real forest trail)
+  // Build an organic forest trail with wide swings + fork branches
   _buildOrganicPath(count) {
     const dots = []
-    let cx = 0.45 + Math.random() * 0.1
+    const branches = [] // [{fromIdx, x, y}] — short dead-end forks
+    let cx = 0.5 + (Math.random() - 0.5) * 0.15
     let cy = 0.88
-    let prevAngle = -Math.PI / 2 // start heading upward
+    let prevAngle = -Math.PI / 2
 
     for (let i = 0; i < count; i++) {
       dots.push({ x: cx, y: cy, glowing: false })
-      // Organic movement — smoothed direction changes (no sharp reversals)
-      const angleJitter = (Math.random() - 0.5) * 0.9
-      prevAngle = prevAngle * 0.7 + (-Math.PI / 2 + angleJitter) * 0.3 // blend toward upward
-      const step = (0.6 / count) + (Math.random() - 0.5) * 0.02
-      const nx = cx + Math.cos(prevAngle) * step * 0.7
+
+      // Wide lateral swings — alternating bias left/right
+      const sideForce = Math.sin(i * 1.1) * 0.6 // oscillating lateral push
+      const angleJitter = (Math.random() - 0.5) * 1.4 + sideForce
+      prevAngle = prevAngle * 0.5 + (-Math.PI / 2 + angleJitter) * 0.5
+      const step = (0.62 / count) + (Math.random() - 0.5) * 0.03
+      const nx = cx + Math.cos(prevAngle) * step * 1.0
       const ny = cy + Math.sin(prevAngle) * step * 1.1
-      // Clamp + ensure no self-crossing (always move upward)
-      cx = Math.max(0.12, Math.min(0.88, nx))
-      cy = Math.max(0.08, Math.min(cy - 0.01, ny)) // force upward progress
+      cx = Math.max(0.1, Math.min(0.9, nx))
+      cy = Math.max(0.06, Math.min(cy - 0.008, ny))
+
+      // Fork branch every 3-4 dots (short dead-end side trail)
+      if (i > 0 && i % 3 === 1 && Math.random() > 0.3) {
+        const branchSide = (i % 2 === 0) ? 1 : -1
+        const bx = cx + branchSide * (0.06 + Math.random() * 0.08)
+        const by = cy + (Math.random() - 0.5) * 0.04
+        branches.push({ fromIdx: i, x: Math.max(0.08, Math.min(0.92, bx)), y: by })
+      }
     }
+    this._branches = branches
     return dots
   }
 
@@ -191,20 +203,22 @@ export class BookCinematic {
     const title = this._title || 'Broceliande'
     const chars = Math.min(Math.floor(maxChars), text.length)
     const visible = text.substring(0, chars)
-    const margin = w * 0.08, lineH = 18
-    const titleFont = Math.round(w * 0.048)
-    const bodyFont = Math.round(w * 0.03)
+    const margin = w * 0.1
+    const lineH = Math.max(22, Math.round(w * 0.04))
+    const titleFont = Math.round(w * 0.055)
+    const bodyFont = Math.max(14, Math.round(w * 0.034))
 
     // Title
-    let ty = y + 28
+    let ty = y + 35
     cx.fillStyle = '#1a0e04'; cx.font = `bold ${titleFont}px Georgia,serif`
     cx.textAlign = 'center'; cx.fillText(title, x + w / 2, ty); cx.textAlign = 'left'
-    ty += 6
+    ty += 10
+    // Decorative rule
     cx.strokeStyle = '#8a7040'; cx.lineWidth = 0.8
-    cx.beginPath(); cx.moveTo(x + margin * 2, ty); cx.lineTo(x + w - margin * 2, ty); cx.stroke()
-    ty += 18
+    cx.beginPath(); cx.moveTo(x + margin * 1.5, ty); cx.lineTo(x + w - margin * 1.5, ty); cx.stroke()
+    ty += 24
 
-    // Body text — word-wrapped with paragraph spacing after periods
+    // Body text — generous spacing, paragraph breaks every 2 sentences
     cx.fillStyle = '#1a1008'; cx.font = `${bodyFont}px Georgia,serif`
     const words = visible.split(' ')
     let line = '', maxW = w - margin * 2, lastX = x + margin, lastY = ty
@@ -216,10 +230,10 @@ export class BookCinematic {
         lastX = x + margin + cx.measureText(line.trim()).width; lastY = ty
         line = word + ' '; ty += lineH
       } else { line = test }
-      // Extra paragraph gap every 3-4 sentences
+      // Paragraph break every 2 sentences for breathing room
       if (word.endsWith('.') || word.endsWith('!') || word.endsWith('?')) {
         sentenceCount++
-        if (sentenceCount % 4 === 0) ty += lineH * 0.4
+        if (sentenceCount % 2 === 0) ty += lineH * 0.6
       }
     }
     if (line.trim()) {
@@ -325,19 +339,31 @@ export class BookCinematic {
       }
     }
 
-    // Subtle side trails (short branches off main path — cartographic detail)
-    if (segsToShow > 2) {
-      cx.strokeStyle = 'rgba(90,70,40,0.12)'; cx.lineWidth = 1; cx.setLineDash([3, 4])
-      for (let i = 1; i < Math.min(segsToShow, dots.length - 1); i += 3) {
-        const d = dots[i]
-        const px = x + margin + d.x * (w - margin * 2)
-        const py = y + 25 + d.y * (h - 45)
-        const side = i % 2 === 0 ? 1 : -1
-        cx.beginPath(); cx.moveTo(px, py)
-        cx.lineTo(px + side * (12 + i * 2), py - 5 + i * 1.5)
+    // Fork branches — curved dead-end trails branching off main path
+    const branches = this._branches || []
+    if (segsToShow > 1) {
+      for (const br of branches) {
+        if (br.fromIdx > segsToShow) continue // only show branches for reached dots
+        const fromDot = dots[br.fromIdx]
+        if (!fromDot) continue
+        const fpx = x + margin + fromDot.x * (w - margin * 2)
+        const fpy = y + 25 + fromDot.y * (h - 45)
+        const bpx = x + margin + br.x * (w - margin * 2)
+        const bpy = y + 25 + br.y * (h - 45)
+
+        // Curved branch trail (dashed)
+        cx.strokeStyle = 'rgba(80,60,35,0.18)'; cx.lineWidth = 1.5; cx.setLineDash([4, 5])
+        const cpx2 = (fpx + bpx) / 2 + (Math.random() > 0.5 ? 8 : -8)
+        const cpy2 = (fpy + bpy) / 2 - 5
+        cx.beginPath(); cx.moveTo(fpx, fpy)
+        cx.quadraticCurveTo(cpx2, cpy2, bpx, bpy)
         cx.stroke()
+        cx.setLineDash([])
+
+        // Small dim dot at branch end
+        cx.fillStyle = 'rgba(120,90,50,0.2)'
+        cx.beginPath(); cx.arc(bpx, bpy, 2.5, 0, Math.PI * 2); cx.fill()
       }
-      cx.setLineDash([])
     }
 
     // Draw dots — glow when trail reaches them
