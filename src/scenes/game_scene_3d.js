@@ -291,7 +291,10 @@ export class GameScene3D {
     cam.updateProjectionMatrix()
 
     const pathMid = this._pathCamera.getPath()?.getPointAt(0.15) ?? startPos
-    cam.lookAt(pathMid.x, groundY + 1.0, pathMid.z) // +1.0 avoids lookAt Y-snap at phase boundary
+    cam.lookAt(pathMid.x, groundY + 1.0, pathMid.z)
+
+    // Start biome ambient drone during aerial
+    try { startBiomeDrone(biomeKey) } catch (_) {}
 
     // Short hover with gentle orbit (0.8s — overlaps with dive fade)
     const hoverStart = performance.now()
