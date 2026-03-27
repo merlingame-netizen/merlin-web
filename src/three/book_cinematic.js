@@ -204,10 +204,11 @@ export class BookCinematic {
     cx.beginPath(); cx.moveTo(x + margin * 2, ty); cx.lineTo(x + w - margin * 2, ty); cx.stroke()
     ty += 18
 
-    // Body text — word-wrapped
+    // Body text — word-wrapped with paragraph spacing after periods
     cx.fillStyle = '#1a1008'; cx.font = `${bodyFont}px Georgia,serif`
     const words = visible.split(' ')
     let line = '', maxW = w - margin * 2, lastX = x + margin, lastY = ty
+    let sentenceCount = 0
     for (const word of words) {
       const test = line + word + ' '
       if (cx.measureText(test).width > maxW) {
@@ -215,6 +216,11 @@ export class BookCinematic {
         lastX = x + margin + cx.measureText(line.trim()).width; lastY = ty
         line = word + ' '; ty += lineH
       } else { line = test }
+      // Extra paragraph gap every 3-4 sentences
+      if (word.endsWith('.') || word.endsWith('!') || word.endsWith('?')) {
+        sentenceCount++
+        if (sentenceCount % 4 === 0) ty += lineH * 0.4
+      }
     }
     if (line.trim()) {
       cx.fillText(line.trim(), x + margin, ty)
